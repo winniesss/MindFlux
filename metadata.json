@@ -1,0 +1,7 @@
+{
+  "name": "Flux",
+  "description": "A Stoic-inspired anti-anxiety todo app that uses a visual physics engine to help you separate controllable actions from uncontrollable noise.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
