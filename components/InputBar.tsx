@@ -6,6 +6,7 @@ import { t } from '../locales';
 interface InputBarProps {
   onSubmit: (content: string) => void;
   lang: Language;
+  isProcessing?: boolean;
 }
 
 interface IWindow extends Window {
@@ -13,7 +14,7 @@ interface IWindow extends Window {
   SpeechRecognition: any;
 }
 
-const InputBar: React.FC<InputBarProps> = ({ onSubmit, lang }) => {
+const InputBar: React.FC<InputBarProps> = ({ onSubmit, lang, isProcessing }) => {
   const [text, setText] = useState('');
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<any>(null);
@@ -72,7 +73,7 @@ const InputBar: React.FC<InputBarProps> = ({ onSubmit, lang }) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!text.trim()) return;
+    if (!text.trim() || isProcessing) return;
     onSubmit(text);
     setText('');
     if (isListening) {
@@ -83,7 +84,7 @@ const InputBar: React.FC<InputBarProps> = ({ onSubmit, lang }) => {
 
   return (
     <div className="absolute bottom-0 left-0 right-0 p-6 pb-10 md:p-12 md:pb-16 bg-gradient-to-t from-slate-950 via-slate-950/95 to-transparent z-40 flex justify-center">
-      <form onSubmit={handleSubmit} className="w-full max-w-2xl relative flex items-center gap-4 transition-all">
+      <form onSubmit={handleSubmit} className={`w-full max-w-2xl relative flex items-center gap-4 transition-all ${isProcessing ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
         
         <button
           type="button"
@@ -112,18 +113,21 @@ const InputBar: React.FC<InputBarProps> = ({ onSubmit, lang }) => {
             type="text"
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder={isListening ? t('listening', lang) : t('inputPlaceholder', lang)}
+            disabled={isProcessing}
+            placeholder={isProcessing ? "Processing..." : isListening ? t('listening', lang) : t('inputPlaceholder', lang)}
             className={`w-full backdrop-blur-3xl border rounded-3xl py-4 pl-6 md:py-6 md:pl-8 pr-16 md:pr-20 text-base md:text-2xl font-medium focus:outline-none transition-all shadow-2xl appearance-none tracking-tight
                 ${isListening 
                     ? 'bg-rose-500/5 border-rose-500/30 text-rose-100 placeholder-rose-300/40' 
+                    : isProcessing
+                    ? 'bg-slate-900 border-indigo-500/30 text-slate-400'
                     : 'bg-white/5 border-white/10 text-white placeholder-slate-600 focus:bg-white/10 focus:border-white/30'
                 }`}
             />
             <button 
             type="submit"
-            disabled={!text.trim()}
+            disabled={!text.trim() || isProcessing}
             className={`absolute right-2 md:right-3 top-2 md:top-3 bottom-2 md:bottom-3 aspect-square rounded-2xl flex items-center justify-center transition-all duration-500 shadow-2xl
-                ${text.trim() 
+                ${text.trim() && !isProcessing
                     ? 'bg-indigo-600 active:bg-indigo-500 text-white scale-100 opacity-100' 
                     : 'bg-slate-800 text-slate-600 scale-90 opacity-0 pointer-events-none'
                 }`}

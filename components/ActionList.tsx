@@ -1,31 +1,28 @@
 
-import React from 'react';
-import { Thought, Weight, ThoughtStatus, Language } from '../types';
+import React, { useState } from 'react';
+import { Thought, Weight, ThoughtStatus, Language, SubTask } from '../types';
 import { generateGoogleCalendarUrl } from '../services/calendarService';
 import { t } from '../locales';
 
 interface ActionListProps {
   thoughts: Thought[];
   onComplete: (thought: Thought) => void;
+  onUpdateSubtasks: (thoughtId: string, subTasks: SubTask[]) => void;
   isCalendarConnected?: boolean;
   lang: Language;
 }
 
-const ActionList: React.FC<ActionListProps> = ({ thoughts, onComplete, isCalendarConnected, lang }) => {
+const ActionList: React.FC<ActionListProps> = ({ thoughts, onComplete, onUpdateSubtasks, isCalendarConnected, lang }) => {
   const oneDayInMs = 24 * 60 * 60 * 1000;
   
-  // Show active tasks OR tasks completed in the last 24 hours
   const displayThoughts = thoughts.filter(t => 
     t.status === ThoughtStatus.LET_ME || 
     (t.status === ThoughtStatus.COMPLETED && t.completedAt && (Date.now() - t.completedAt < oneDayInMs))
   );
 
   const sortedThoughts = [...displayThoughts].sort((a, b) => {
-    // Completed tasks always at the bottom
     if (a.status === ThoughtStatus.COMPLETED && b.status !== ThoughtStatus.COMPLETED) return 1;
     if (b.status === ThoughtStatus.COMPLETED && a.status !== ThoughtStatus.COMPLETED) return -1;
-    
-    // Sort by due date, then by creation date
     if (a.dueDate && b.dueDate) return a.dueDate - b.dueDate;
     if (a.dueDate) return -1;
     if (b.dueDate) return 1;
@@ -56,6 +53,7 @@ const ActionList: React.FC<ActionListProps> = ({ thoughts, onComplete, isCalenda
             key={thought.id} 
             thought={thought} 
             onComplete={onComplete} 
+            onUpdateSubtasks={onUpdateSubtasks}
             showCalendar={isCalendarConnected}
             lang={lang}
           />
@@ -65,10 +63,25 @@ const ActionList: React.FC<ActionListProps> = ({ thoughts, onComplete, isCalenda
   );
 };
 
-const ActionCard: React.FC<{ thought: Thought; onComplete: (t: Thought) => void; showCalendar?: boolean; lang: Language }> = ({ thought, onComplete, showCalendar, lang }) => {
+const ActionCard: React.FC<{ thought: Thought; onComplete: (t: Thought) => void; onUpdateSubtasks: (id: string, st: SubTask[]) => void; showCalendar?: boolean; lang: Language }> = ({ thought, onComplete, onUpdateSubtasks, showCalendar, lang }) => {
+  const [isImploding, setIsImploding] = useState(false);
   const isCompleted = thought.status === ThoughtStatus.COMPLETED;
   const isOverdue = !isCompleted && thought.dueDate && thought.dueDate < Date.now();
-  const isSoon = !isCompleted && thought.dueDate && thought.dueDate < Date.now() + 86400000;
+
+  const handleComplete = () => {
+    setIsImploding(true);
+    setTimeout(() => {
+      onComplete(thought);
+      setIsImploding(false);
+    }, 600);
+  };
+
+  const toggleSubtask = (subTaskId: string) => {
+    const updated = (thought.subTasks || []).map(st => 
+      st.id === subTaskId ? { ...st, completed: !st.completed } : st
+    );
+    onUpdateSubtasks(thought.id, updated);
+  };
 
   const handleCalendarClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -79,19 +92,17 @@ const ActionCard: React.FC<{ thought: Thought; onComplete: (t: Thought) => void;
 
   return (
     <div 
-      className={`group relative p-5 md:p-8 rounded-3xl border backdrop-blur-md transition-all duration-700 transform ${
+      className={`group relative p-5 md:p-8 rounded-3xl border backdrop-blur-md transition-all duration-700 transform overflow-hidden ${
         isCompleted 
           ? 'bg-slate-900/10 border-slate-800/20 opacity-30 grayscale pointer-events-none' 
           : isOverdue 
             ? 'bg-rose-950/10 border-rose-500/30 shadow-[0_0_30px_rgba(244,63,94,0.05)] active:scale-[0.98]' 
-            : isSoon
-              ? 'bg-amber-950/10 border-amber-500/30 active:scale-[0.98]'
-              : 'bg-slate-900/40 border-slate-800 hover:border-slate-700 active:scale-[0.98]'
-      }`}
+            : 'bg-slate-900/40 border-slate-800 hover:border-slate-700 active:scale-[0.98]'
+      } ${isImploding ? 'animate-[implosion_0.6s_ease-in_forwards]' : ''}`}
     >
        <div className="flex items-start gap-4 md:gap-8">
          <button 
-           onClick={() => !isCompleted && onComplete(thought)}
+           onClick={() => !isCompleted && handleComplete()}
            className={`shrink-0 w-6 h-6 md:w-10 md:h-10 rounded-full border-2 mt-1.5 transition-all flex items-center justify-center ${
              isCompleted ? 'bg-amber-500 border-amber-500' : 
              isOverdue ? 'border-rose-500/50' : 'border-slate-800 group-hover:border-amber-500'
@@ -102,7 +113,7 @@ const ActionCard: React.FC<{ thought: Thought; onComplete: (t: Thought) => void;
            </svg>
          </button>
          
-         <div className="flex-1 min-w-0" onClick={() => !isCompleted && onComplete(thought)}>
+         <div className="flex-1 min-w-0">
             <div className="flex items-center gap-3 mb-2">
               <span className={`text-[8px] md:text-xs font-black uppercase tracking-[0.2em] ${isCompleted ? 'text-slate-600' : isOverdue ? 'text-rose-400' : 'text-slate-500'}`}>
                 {isCompleted ? 'Done' : (thought.dueDate ? new Date(thought.dueDate).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }) : 'Unscheduled')}
@@ -110,13 +121,31 @@ const ActionCard: React.FC<{ thought: Thought; onComplete: (t: Thought) => void;
               {isOverdue && !isCompleted && <span className="animate-pulse w-1.5 h-1.5 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,1)]"></span>}
             </div>
             
-            <p className={`font-bold text-base md:text-2xl leading-tight break-words mb-3 transition-all ${isCompleted ? 'text-slate-700 line-through' : isOverdue ? 'text-rose-50' : 'text-slate-100'}`}>
+            <p className={`font-bold text-base md:text-2xl leading-tight break-words mb-4 transition-all ${isCompleted ? 'text-slate-700 line-through' : isOverdue ? 'text-rose-50' : 'text-slate-100'}`}>
                {thought.content}
             </p>
+
+            {/* Sub-tasks Section */}
+            {!isCompleted && thought.subTasks && thought.subTasks.length > 0 && (
+              <div className="space-y-2 mb-4 animate-in slide-in-from-left-2 duration-500">
+                {thought.subTasks.map(st => (
+                  <button 
+                    key={st.id}
+                    onClick={() => toggleSubtask(st.id)}
+                    className="w-full flex items-center gap-3 py-2 px-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all text-left group/st"
+                  >
+                    <div className={`w-4 h-4 rounded-md border flex items-center justify-center transition-all ${st.completed ? 'bg-amber-500 border-amber-500' : 'border-slate-700 group-hover/st:border-amber-500/50'}`}>
+                       {st.completed && <svg className="w-3 h-3 text-amber-950" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>}
+                    </div>
+                    <span className={`text-xs md:text-sm font-medium ${st.completed ? 'text-slate-600 line-through' : 'text-slate-300'}`}>{st.text}</span>
+                  </button>
+                ))}
+              </div>
+            )}
             
             {thought.aiReasoning && !isCompleted && (
               <div className="flex items-start gap-2 max-w-lg">
-                <span className="text-amber-500/50 text-[10px] md:text-sm mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity">✦</span>
+                <span className="text-amber-500/50 text-[10px] md:text-sm mt-0.5">✦</span>
                 <p className="text-[9px] md:text-sm text-slate-500 italic leading-relaxed font-medium">
                   {thought.aiReasoning}
                 </p>
@@ -136,6 +165,13 @@ const ActionCard: React.FC<{ thought: Thought; onComplete: (t: Thought) => void;
            </button>
          )}
        </div>
+       <style>{`
+          @keyframes implosion {
+            0% { transform: scale(1); opacity: 1; filter: brightness(1); }
+            50% { transform: scale(0.95); opacity: 0.8; filter: brightness(1.5); }
+            100% { transform: scale(0.1); opacity: 0; filter: brightness(5) blur(10px); }
+          }
+       `}</style>
     </div>
   );
 };

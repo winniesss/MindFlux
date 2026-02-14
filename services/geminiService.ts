@@ -1,8 +1,7 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { AnalysisResult, Weight, Language, Thought } from "../types";
+import { AnalysisResult, Weight, Language, Thought, ThoughtStatus } from "../types";
 
-// Always initialize GoogleGenAI with a named parameter for apiKey using process.env.API_KEY directly.
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 const getAnalysisSchema = (lang: Language) => ({
@@ -11,24 +10,78 @@ const getAnalysisSchema = (lang: Language) => ({
     category: {
       type: Type.STRING,
       enum: ["LET_THEM", "LET_ME"],
-      description: "Classify if this is something outside user control (LET_THEM) or an actionable task (LET_ME)."
+      description: "Classify if this is outside control (LET_THEM/Smoke) or an actionable task (LET_ME/Solid)."
     },
     weight: {
       type: Type.STRING,
       enum: ["URGENT", "IMPORTANT", "CASUAL"],
-      description: "Priority weight."
     },
     reasoning: {
       type: Type.STRING,
-      description: `Explain why taking action on this will improve the user's mental health or reduce stress in ${lang === 'zh' ? 'Chinese' : 'English'}.`
+      description: `Explain why this belongs to this category in ${lang === 'zh' ? 'Chinese' : 'English'}.`
     },
     reframing: {
       type: Type.STRING,
-      description: `For LET_THEM, provide a wise, calming reframing of the worry to help the user find peace (max 15 words). In ${lang === 'zh' ? 'Chinese' : 'English'}.`
+      description: "For LET_THEM, a gentle reframing. For LET_ME, the core goal."
+    },
+    stoicQuote: {
+      type: Type.STRING,
+      description: "A short profound Stoic-style insight (max 15 words)."
+    },
+    subTasks: {
+      type: Type.ARRAY,
+      items: { type: Type.STRING },
+      description: "For LET_ME, 1-3 micro-tasks (15 mins each). Empty for LET_THEM."
+    },
+    timeEstimate: {
+      type: Type.STRING,
+      description: "Total time estimate for actionable items."
     }
   },
-  required: ["category", "reasoning"]
+  required: ["category", "reasoning", "stoicQuote"]
 });
+
+const splitChaosSchema = {
+  type: Type.ARRAY,
+  items: {
+    type: Type.OBJECT,
+    properties: {
+      text: { type: Type.STRING, description: "One distinct thought or task." }
+    },
+    required: ["text"]
+  }
+};
+
+/**
+ * Semantic Explosion: Simplified for fragment confirmation only.
+ */
+export const splitChaos = async (content: string, lang: Language): Promise<Partial<Thought>[]> => {
+  try {
+    const prompt = `Deconstruct: "${content}". 
+    Split into distinct items. Keep it raw and atomic.
+    Language: ${lang === 'zh' ? 'Chinese' : 'English'}.`;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: splitChaosSchema,
+        thinkingConfig: { thinkingBudget: 0 },
+        systemInstruction: "You are a deconstruction expert. Explode messy human input into clean, distinct fragments of thought."
+      }
+    });
+
+    const results = JSON.parse(response.text || "[]");
+    return results.map((r: any) => ({
+      content: r.text,
+      status: ThoughtStatus.UNSORTED
+    }));
+  } catch (error) {
+    console.error("Split Chaos Error:", error);
+    return [{ content, status: ThoughtStatus.UNSORTED }];
+  }
+};
 
 export const analyzeThought = async (
   content: string, 
@@ -36,66 +89,48 @@ export const analyzeThought = async (
   calendarContext?: string
 ): Promise<AnalysisResult> => {
   try {
-    const contextPrompt = calendarContext 
-      ? `\nUSER CALENDAR CONTEXT: ${calendarContext}`
-      : "";
+    const prompt = `Quick analyze: "${content}".
+    ${calendarContext ? `Context: ${calendarContext}` : ""}
+    Language: ${lang === 'zh' ? 'Chinese' : 'English'}.`;
 
-    const prompt = `Analyze this thought for a therapeutic mental health app: "${content}". 
-    Dichotomy of Control: Is it actionable (LET_ME) or a worry/emotion to be accepted (LET_THEM)?
-    ${contextPrompt}
-    Focus on WHY this classification helps the user's mental state.
-    Respond in JSON.`;
-
-    // Directly calling ai.models.generateContent with model name and prompt.
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: prompt,
       config: {
         responseMimeType: "application/json",
         responseSchema: getAnalysisSchema(lang),
-        systemInstruction: lang === 'zh' 
-          ? "你是一位深谙心理学与斯多葛哲学的导师。你的目标是帮助用户建立心理韧性。对于“行动项”，强调完成它对心理健康的积极影响；对于“接受项”，提供温柔且深刻的转念建议。"
-          : "You are a mentor in psychology and Stoic philosophy. Your goal is to build the user's mental resilience. For actions, emphasize the positive impact on mental health once completed. For acceptance, provide gentle and profound reframing suggestions."
+        thinkingConfig: { thinkingBudget: 0 },
+        systemInstruction: "You are a master of Stoicism. Provide concise reframing or micro-tasks instantly."
       }
     });
 
-    // Access the text property directly on the response object.
-    const text = response.text;
-    if (!text) throw new Error("No response from AI");
-
-    return JSON.parse(text) as AnalysisResult;
+    return JSON.parse(response.text || "{}") as AnalysisResult;
   } catch (error) {
-    console.error("Gemini Analysis Error:", error);
-    // Graceful fallback for API errors.
+    console.error("Analysis Error:", error);
     return {
       category: 'LET_ME',
-      weight: Weight.CASUAL,
-      reasoning: "Action leads to clarity.",
-      reframing: "Stillness is strength."
+      reasoning: "Action clarifies.",
+      stoicQuote: "The obstacle is the way.",
+      subTasks: ["First step"],
+      timeEstimate: "15m"
     };
   }
 };
 
 export const analyzeChaos = async (thoughts: Thought[], lang: Language): Promise<string> => {
   if (thoughts.length === 0) return "";
-  
   const contents = thoughts.map(t => t.content).join(" | ");
-  const prompt = `Here is a list of a user's current worries and tasks: "${contents}". 
-  Provide a single, short, profound Stoic insight (max 20 words) that summarizes the "vibe" of this chaos and encourages the user to breathe and sort them. 
-  Respond in ${lang === 'zh' ? 'Chinese' : 'English'}.`;
-
+  const prompt = `Summarize mental chaos in <15 words: "${contents}". Language: ${lang === 'zh' ? 'Chinese' : 'English'}.`;
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: prompt,
       config: {
-        systemInstruction: "You are Marcus Aurelius. Be brief, wise, and grounding."
+        thinkingConfig: { thinkingBudget: 0 }
       }
     });
-    // Access the text property directly.
     return response.text || "";
   } catch (e) {
-    console.error("Gemini Chaos Analysis Error:", e);
-    return "";
+    return "Focus on what you control.";
   }
 };

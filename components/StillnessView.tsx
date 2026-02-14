@@ -7,10 +7,12 @@ interface StillnessViewProps {
   thoughts: Thought[];
   lang: Language;
   onClearStillness: () => void;
+  onThoughtVanish: (thought: Thought) => void;
 }
 
-const StillnessView: React.FC<StillnessViewProps> = ({ thoughts, lang, onClearStillness }) => {
+const StillnessView: React.FC<StillnessViewProps> = ({ thoughts, lang, onClearStillness, onThoughtVanish }) => {
   const [isCleansing, setIsCleansing] = useState(false);
+  const [vanishingId, setVanishingId] = useState<string | null>(null);
 
   const reflectedThoughts = thoughts
     .filter(t => t.status === ThoughtStatus.LET_THEM)
@@ -22,6 +24,14 @@ const StillnessView: React.FC<StillnessViewProps> = ({ thoughts, lang, onClearSt
       onClearStillness();
       setIsCleansing(false);
     }, 800);
+  };
+
+  const handleDissipate = (thought: Thought) => {
+    setVanishingId(thought.id);
+    setTimeout(() => {
+      onThoughtVanish(thought);
+      setVanishingId(null);
+    }, 1000);
   };
 
   if (reflectedThoughts.length === 0) {
@@ -42,52 +52,53 @@ const StillnessView: React.FC<StillnessViewProps> = ({ thoughts, lang, onClearSt
         <div className="text-center mb-16 px-4">
           <h2 className="text-indigo-400 text-[10px] md:text-xs font-black tracking-[0.5em] uppercase mb-4 opacity-80">{t('letThem', lang)} Gallery</h2>
           <p className="text-slate-400 text-sm md:text-2xl leading-relaxed italic font-serif max-w-2xl mx-auto drop-shadow-sm mb-4">
-            "We suffer more often in imagination than in reality."
+            "Everything we hear is an opinion, not a fact. Everything we see is a perspective, not the truth."
           </p>
-          <p className="text-slate-600 text-[10px] md:text-xs uppercase tracking-widest mt-1 font-bold mb-10">— Seneca</p>
-
           <div className="flex justify-center mt-8">
             <button 
               onClick={handleCleanse}
               className="px-6 py-2.5 rounded-full bg-indigo-500/5 border border-indigo-500/20 text-indigo-400/60 hover:bg-indigo-500/10 hover:text-indigo-300 hover:border-indigo-500/40 transition-all active:scale-95 flex items-center gap-3 group backdrop-blur-sm"
-              title={t('cleanseStillness', lang)}
             >
-               <svg className={`w-4 h-4 md:w-5 md:h-5 ${isCleansing ? 'animate-spin' : 'group-hover:rotate-12 transition-transform duration-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+               <svg className={`w-4 h-4 md:w-5 md:h-5 ${isCleansing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                </svg>
                <span className="text-[10px] font-black uppercase tracking-[0.2em]">{t('cleanseStillness', lang)}</span>
-               {isCleansing && <div className="absolute inset-0 rounded-full bg-indigo-400/20 animate-ping"></div>}
             </button>
           </div>
         </div>
 
-        <div className={`grid gap-8 md:gap-12 transition-all duration-700 ${isCleansing ? 'opacity-0 scale-95 blur-2xl pointer-events-none' : 'opacity-100 scale-100 blur-0'}`}>
+        <div className={`grid gap-8 md:gap-12 transition-all duration-700 ${isCleansing ? 'opacity-0 scale-95 blur-2xl' : 'opacity-100'}`}>
           {reflectedThoughts.map((t) => (
-            <div key={t.id} className="relative p-8 md:p-12 rounded-[2rem] bg-white/[0.01] border border-white/5 backdrop-blur-xl group hover:bg-white/[0.03] hover:border-indigo-500/20 transition-all duration-700">
-              <div className="absolute -top-3 left-8 px-4 py-1 bg-slate-950 border border-white/10 rounded-full text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-widest group-hover:text-indigo-400 transition-colors">
-                {new Date(t.createdAt).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}
+            <div 
+              key={t.id} 
+              onClick={() => handleDissipate(t)}
+              className={`relative p-8 md:p-12 rounded-[2rem] bg-indigo-950/5 border border-white/5 backdrop-blur-xl group hover:bg-indigo-950/10 hover:border-indigo-500/20 transition-all duration-1000 cursor-pointer overflow-hidden ${vanishingId === t.id ? 'animate-[dissipate_1s_ease-out_forwards]' : ''}`}
+            >
+              <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                 <span className="text-[8px] font-black text-indigo-400/40 uppercase tracking-widest">Tap to Dissipate</span>
               </div>
-              
+
               <p className="text-slate-500 text-sm md:text-xl mb-6 line-through decoration-slate-800/50 opacity-40 italic font-medium">
                 {t.content}
               </p>
               
               <div className="flex items-start gap-4 md:gap-6">
-                <span className="text-indigo-400 text-2xl md:text-4xl mt-1 animate-pulse">✨</span>
+                <span className="text-indigo-400 text-2xl md:text-4xl mt-1 animate-pulse">🌙</span>
                 <p className="text-indigo-100 text-base md:text-2xl font-semibold leading-snug tracking-tight">
-                  {t.reframedContent || "Let this pass through you without leaving a trace."}
+                  {t.stoicQuote || "Accept what you cannot change."}
                 </p>
               </div>
             </div>
           ))}
         </div>
-
-        <div className="pt-20 pb-10 text-center opacity-10">
-          <div className="inline-block w-1.5 h-1.5 rounded-full bg-white mx-2 animate-bounce [animation-delay:-0.3s]"></div>
-          <div className="inline-block w-1.5 h-1.5 rounded-full bg-white mx-2 animate-bounce [animation-delay:-0.15s]"></div>
-          <div className="inline-block w-1.5 h-1.5 rounded-full bg-white mx-2 animate-bounce"></div>
-        </div>
       </div>
+      <style>{`
+        @keyframes dissipate {
+          0% { transform: scale(1); opacity: 1; filter: blur(0px); }
+          50% { transform: translateY(-20px) scale(1.05); opacity: 0.5; filter: blur(10px); }
+          100% { transform: translateY(-100px) scale(1.5); opacity: 0; filter: blur(40px); }
+        }
+      `}</style>
     </div>
   );
 };

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Thought, ThoughtStatus, Weight, Language, CalendarProvider } from './types';
+import { Thought, ThoughtStatus, Weight, Language, CalendarProvider, SubTask } from './types';
 import Nebula from './components/Nebula';
 import ActionList from './components/ActionList';
 import StillnessView from './components/StillnessView';
@@ -8,14 +8,17 @@ import SieveModal from './components/SieveModal';
 import SettingsModal from './components/SettingsModal';
 import MenuDrawer from './components/MenuDrawer';
 import InputBar from './components/InputBar';
+import ExplosionReview from './components/ExplosionReview';
 import Toast from './components/Toast';
 import { t } from './locales';
 import { fetchCalendarContext, CalendarSummary } from './services/googleService';
+import { splitChaos } from './services/geminiService';
 
-const APP_VERSION = "1.2.0";
+const APP_VERSION = "1.4.0";
 
 function App() {
   const [thoughts, setThoughts] = useState<Thought[]>([]);
+  const [pendingThoughts, setPendingThoughts] = useState<Thought[]>([]);
   const [selectedThought, setSelectedThought] = useState<Thought | null>(null);
   const [view, setView] = useState<'NEBULA' | 'LIST' | 'STILLNESS'>('NEBULA');
   const [calendarProvider, setCalendarProvider] = useState<CalendarProvider>(null);
@@ -25,6 +28,7 @@ function App() {
   const [dimensions, setDimensions] = useState({ width: window.innerWidth, height: window.innerHeight });
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isExploding, setIsExploding] = useState(false);
   
   const [undoAction, setUndoAction] = useState<{
     message: string;
@@ -36,34 +40,14 @@ function App() {
       setDimensions({ width: window.innerWidth, height: window.innerHeight });
     };
     window.addEventListener('resize', handleResize);
-    // Correctly using removeEventListener to clean up the resize listener
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   useEffect(() => {
     const saved = localStorage.getItem('flux_thoughts');
-    let loadedThoughts: Thought[] = [];
     if (saved) {
-      loadedThoughts = JSON.parse(saved);
-    } else {
-      loadedThoughts = [
-        { id: '1', content: 'What if the stock market crashes next month?', createdAt: Date.now(), status: ThoughtStatus.UNSORTED, r: 50 },
-        { id: '2', content: 'Finishing the project proposal by Friday', createdAt: Date.now(), status: ThoughtStatus.UNSORTED, r: 45 },
-        { id: '3', content: 'That awkward comment I made during dinner', createdAt: Date.now(), status: ThoughtStatus.UNSORTED, r: 42 },
-        { id: '4', content: 'Booking a flight for my summer vacation', createdAt: Date.now(), status: ThoughtStatus.UNSORTED, r: 48 },
-        { id: '5', content: 'The neighbor\'s loud music late at night', createdAt: Date.now(), status: ThoughtStatus.UNSORTED, r: 40 },
-      ];
+      setThoughts(JSON.parse(saved));
     }
-
-    const oneDay = 24 * 60 * 60 * 1000;
-    const now = Date.now();
-    const filtered = loadedThoughts.filter(t => {
-      if (t.status === ThoughtStatus.COMPLETED && t.completedAt) {
-        return now - t.completedAt < oneDay;
-      }
-      return true;
-    });
-    setThoughts(filtered);
     
     const savedProvider = localStorage.getItem('flux_calendar_provider') as CalendarProvider;
     if (savedProvider) {
@@ -96,29 +80,52 @@ function App() {
     localStorage.setItem('flux_lang', newLang);
   };
 
-  const connectCalendar = (provider: CalendarProvider) => {
-    setCalendarProvider(provider);
-    if (provider) {
-      localStorage.setItem('flux_calendar_provider', provider);
-      handleSyncCalendar();
-    } else {
-      localStorage.removeItem('flux_calendar_provider');
-      setCalendarContext(null);
+  const addThought = async (content: string) => {
+    setIsExploding(true);
+    try {
+      const explodedNodes = await splitChaos(content, lang);
+      const newThoughts: Thought[] = explodedNodes.map((node, index) => ({
+        id: (Date.now() + index).toString(),
+        content: node.content || "",
+        createdAt: Date.now(),
+        status: ThoughtStatus.UNSORTED,
+        r: 45 + Math.random() * 25
+      }));
+      setPendingThoughts(newThoughts);
+    } catch (e) {
+      console.error("Semantic Explosion Failed", e);
+      const fallback: Thought = {
+        id: Date.now().toString(),
+        content,
+        createdAt: Date.now(),
+        status: ThoughtStatus.UNSORTED,
+        r: 50
+      };
+      setThoughts(prev => [...prev, fallback]);
+    } finally {
+      setIsExploding(false);
     }
   };
 
-  const addThought = (content: string) => {
-    const newThought: Thought = {
-      id: Date.now().toString(),
-      content,
-      createdAt: Date.now(),
-      status: ThoughtStatus.UNSORTED,
-      r: 45 + Math.random() * 25
-    };
-    setThoughts(prev => [...prev, newThought]);
+  const confirmPendingThoughts = (selectedIds: string[]) => {
+    const confirmed = pendingThoughts.filter(t => selectedIds.includes(t.id));
+    setThoughts(prev => [...prev, ...confirmed]);
+    setPendingThoughts([]);
   };
 
-  const handleSort = (id: string, status: ThoughtStatus, weight?: Weight, reframing?: string, dueDate?: number) => {
+  const cancelPendingThoughts = () => {
+    setPendingThoughts([]);
+  };
+
+  const handleSort = (
+    id: string, 
+    status: ThoughtStatus, 
+    weight?: Weight, 
+    reframing?: string, 
+    dueDate?: number,
+    subTasks?: SubTask[],
+    stoicQuote?: string
+  ) => {
     const originalThought = thoughts.find(t => t.id === id);
     if (!originalThought) return;
 
@@ -129,7 +136,16 @@ function App() {
 
     setThoughts(prev => prev.map(t => {
       if (t.id === id) {
-        return { ...t, status, weight, reframedContent: reframing, dueDate };
+        return { 
+          ...t, 
+          status, 
+          weight, 
+          reframedContent: reframing, 
+          dueDate,
+          subTasks,
+          stoicQuote,
+          visualState: status === ThoughtStatus.LET_ME ? 'solid' : 'smoke'
+        };
       }
       return t;
     }));
@@ -143,10 +159,16 @@ function App() {
     });
   };
 
+  const handleUpdateSubtasks = (thoughtId: string, subTasks: SubTask[]) => {
+    setThoughts(prev => prev.map(t => 
+      t.id === thoughtId ? { ...t, subTasks } : t
+    ));
+  };
+
   const handleRelease = (thought: Thought) => {
     setThoughts(prev => prev.filter(t => t.id !== thought.id));
     setUndoAction({
-      message: lang === 'zh' ? "思想已从意识中抹除" : "Thought vanished from consciousness",
+      message: lang === 'zh' ? "思绪已消散" : "Thought dissipated",
       restore: () => {
         setThoughts(prev => [...prev, thought]);
       }
@@ -165,23 +187,11 @@ function App() {
   };
 
   const handleComplete = (thought: Thought) => {
-    const originalStatus = thought.status;
     setThoughts(prev => prev.map(t => 
       t.id === thought.id 
         ? { ...t, status: ThoughtStatus.COMPLETED, completedAt: Date.now() } 
         : t
     ));
-    
-    setUndoAction({
-      message: t('toastComplete', lang),
-      restore: () => {
-        setThoughts(prev => prev.map(t => 
-          t.id === thought.id 
-            ? { ...t, status: originalStatus, completedAt: undefined } 
-            : t
-        ));
-      }
-    });
   };
 
   const unsortedCount = thoughts.filter(t => t.status === ThoughtStatus.UNSORTED).length;
@@ -199,10 +209,6 @@ function App() {
           >
             {t('appTitle', lang)}
           </h1>
-          <div className="hidden md:flex items-center gap-2 mb-1 px-3 py-1 bg-white/5 rounded-full border border-white/5 opacity-40">
-             <span className="text-[8px] font-black uppercase tracking-widest">{view}</span>
-             <span className="w-1 h-1 rounded-full bg-indigo-400 animate-pulse"></span>
-          </div>
         </div>
         
         <div className="pointer-events-auto flex items-center gap-4">
@@ -233,6 +239,7 @@ function App() {
           <ActionList 
             thoughts={thoughts}
             onComplete={handleComplete}
+            onUpdateSubtasks={handleUpdateSubtasks}
             isCalendarConnected={!!calendarProvider}
             lang={lang}
           />
@@ -243,12 +250,27 @@ function App() {
             thoughts={thoughts}
             lang={lang}
             onClearStillness={handleClearStillness}
+            onThoughtVanish={handleRelease}
           />
+        )}
+
+        {isExploding && (
+          <div className="fixed top-8 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-3 px-6 py-3 bg-indigo-600/20 border border-indigo-500/30 backdrop-blur-xl rounded-full animate-in slide-in-from-top-4 duration-500">
+             <div className="w-2 h-2 bg-indigo-400 rounded-full animate-pulse shadow-[0_0_8px_#818cf8]"></div>
+             <p className="text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-indigo-100">Deconstructing Chaos...</p>
+          </div>
         )}
       </main>
 
-      {view === 'NEBULA' && <InputBar onSubmit={addThought} lang={lang} />}
+      {view === 'NEBULA' && <InputBar onSubmit={addThought} lang={lang} isProcessing={isExploding} />}
       
+      <ExplosionReview 
+        pendingThoughts={pendingThoughts}
+        onConfirm={confirmPendingThoughts}
+        onCancel={cancelPendingThoughts}
+        lang={lang}
+      />
+
       <SieveModal 
         thought={selectedThought} 
         onClose={() => setSelectedThought(null)}
@@ -277,7 +299,7 @@ function App() {
         onLanguageChange={handleLanguageChange}
         currentVersion={APP_VERSION}
         calendarProvider={calendarProvider}
-        onConnectCalendar={connectCalendar}
+        onConnectCalendar={setCalendarProvider}
       />
 
       {undoAction && (

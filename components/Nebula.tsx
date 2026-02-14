@@ -3,7 +3,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import { Thought, ThoughtStatus, Language } from '../types';
 import { t } from '../locales';
-import { analyzeChaos } from '../services/geminiService';
 
 interface NebulaProps {
   thoughts: Thought[];
@@ -17,27 +16,6 @@ interface NebulaProps {
 const Nebula: React.FC<NebulaProps> = ({ thoughts, onThoughtClick, onThoughtRelease, width, height, lang }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const [dragY, setDragY] = useState<number | null>(null);
-  const [oracle, setOracle] = useState<string | null>(null);
-  const [hasInteracted, setHasInteracted] = useState(() => {
-    // Session-based persistence for hiding oracle after first interaction
-    return sessionStorage.getItem('flux_interacted') === 'true';
-  });
-
-  useEffect(() => {
-    const activeThoughts = thoughts.filter(t => t.status === ThoughtStatus.UNSORTED);
-    if (activeThoughts.length > 0 && !hasInteracted) {
-      analyzeChaos(activeThoughts, lang).then(setOracle);
-    } else {
-      setOracle(null);
-    }
-  }, [thoughts, lang, hasInteracted]);
-
-  const handleInteraction = () => {
-    if (!hasInteracted) {
-      setHasInteracted(true);
-      sessionStorage.setItem('flux_interacted', 'true');
-    }
-  };
 
   useEffect(() => {
     if (!svgRef.current) return;
@@ -49,7 +27,9 @@ const Nebula: React.FC<NebulaProps> = ({ thoughts, onThoughtClick, onThoughtRele
     const anxietyLevel = Math.min(activeThoughts.length / 10, 1);
     
     const simulation = d3.forceSimulation<Thought>(activeThoughts)
-      .force("charge", d3.forceManyBody().strength(-40 - (anxietyLevel * 60)))
+      .force("charge", d3.forceManyBody().strength((d) => 
+        d.visualState === 'smoke' ? -30 : -50 - (anxietyLevel * 50)
+      ))
       .force("center", d3.forceCenter(width / 2, height / 2 - 20))
       .force("collision", d3.forceCollide().radius((d) => (d.r || 40) + 5))
       .force("x", d3.forceX(width / 2).strength(0.06))
@@ -62,12 +42,10 @@ const Nebula: React.FC<NebulaProps> = ({ thoughts, onThoughtClick, onThoughtRele
       .attr("cursor", "grab")
       .on("click", (event, d) => {
         if (event.defaultPrevented) return;
-        handleInteraction();
         onThoughtClick(d);
       })
       .call(d3.drag<SVGGElement, Thought>()
         .on("start", (event, d) => {
-          handleInteraction();
           if (!event.active) simulation.alphaTarget(0.3).restart();
           d.fx = d.x;
           d.fy = d.y;
@@ -81,14 +59,9 @@ const Nebula: React.FC<NebulaProps> = ({ thoughts, onThoughtClick, onThoughtRele
           const voidY = height - 100;
           if (event.y > voidY - 100) {
             d3.select(event.sourceEvent.target.parentNode)
-              .select("circle")
+              .select(".node-bg")
               .attr("stroke", "rgba(244, 63, 94, 0.8)")
               .attr("fill", "rgba(244, 63, 94, 0.2)");
-          } else {
-            d3.select(event.sourceEvent.target.parentNode)
-              .select("circle")
-              .attr("stroke", "rgba(255, 255, 255, 0.3)")
-              .attr("fill", "rgba(255, 255, 255, 0.1)");
           }
         })
         .on("end", (event, d) => {
@@ -110,12 +83,36 @@ const Nebula: React.FC<NebulaProps> = ({ thoughts, onThoughtClick, onThoughtRele
         })
       );
 
-    node.append("circle")
-      .attr("r", (d) => d.r || 40)
-      .attr("fill", "rgba(255, 255, 255, 0.1)")
-      .attr("stroke", "rgba(255, 255, 255, 0.3)")
-      .attr("stroke-width", 1.5)
-      .attr("class", "backdrop-blur-sm transition-all duration-300 hover:scale-105 shadow-xl");
+    // Filter/Shader for Smoke nodes
+    const defs = svg.append("defs");
+    const filter = defs.append("filter")
+      .attr("id", "smoke-blur")
+      .append("feGaussianBlur")
+      .attr("in", "SourceGraphic")
+      .attr("stdDeviation", "4");
+
+    node.each(function(d) {
+      const g = d3.select(this);
+      const isSmoke = d.visualState === 'smoke';
+      
+      g.append("circle")
+        .attr("class", "node-bg backdrop-blur-sm transition-all duration-300 shadow-xl")
+        .attr("r", d.r || 40)
+        .attr("fill", isSmoke ? "rgba(99, 102, 241, 0.15)" : "rgba(255, 255, 255, 0.1)")
+        .attr("stroke", isSmoke ? "rgba(99, 102, 241, 0.4)" : "rgba(255, 255, 255, 0.3)")
+        .attr("stroke-width", 1.5)
+        .style("filter", isSmoke ? "url(#smoke-blur)" : "none");
+
+      if (isSmoke) {
+         // Sub-smokes
+         g.append("circle")
+           .attr("r", (d.r || 40) * 0.8)
+           .attr("fill", "rgba(129, 140, 248, 0.1)")
+           .attr("cx", 5)
+           .attr("cy", -5)
+           .style("filter", "url(#smoke-blur)");
+      }
+    });
 
     node.append("foreignObject")
       .attr("x", (d) => -(d.r || 40))
@@ -129,7 +126,7 @@ const Nebula: React.FC<NebulaProps> = ({ thoughts, onThoughtClick, onThoughtRele
       .style("align-items", "center")
       .style("justify-content", "center")
       .style("text-align", "center")
-      .style("padding", "10px")
+      .style("padding", "12px")
       .style("font-size", "11px")
       .style("color", "white")
       .style("overflow", "hidden")
@@ -144,7 +141,7 @@ const Nebula: React.FC<NebulaProps> = ({ thoughts, onThoughtClick, onThoughtRele
     return () => {
       simulation.stop();
     };
-  }, [thoughts, width, height, onThoughtClick, onThoughtRelease, hasInteracted]);
+  }, [thoughts, width, height, onThoughtClick, onThoughtRelease]);
 
   const voidIntensity = dragY !== null ? Math.min(Math.max(0, (dragY - (height - 300)) / 200), 1) : 0;
 
@@ -157,23 +154,6 @@ const Nebula: React.FC<NebulaProps> = ({ thoughts, onThoughtClick, onThoughtRele
         }} 
       />
       
-      {/* Rethink position: Move slightly lower to be "next to the bubble" cluster top edge */}
-      {oracle && !hasInteracted && (
-        <div 
-          className="absolute left-1/2 -translate-x-1/2 z-20 w-full max-w-[300px] text-center transition-all duration-1000 animate-in fade-in slide-in-from-top-4"
-          style={{ top: `${height / 2 - 170}px` }}
-        >
-          <div className="bg-white/5 border border-white/10 backdrop-blur-md rounded-2xl p-4 shadow-2xl relative">
-            <div className="absolute -top-2 left-1/2 -translate-x-1/2 px-3 py-0.5 bg-indigo-600 rounded-full">
-              <span className="text-[7px] font-black uppercase tracking-[0.4em] text-white whitespace-nowrap">{t('oracle', lang)} Insight</span>
-            </div>
-            <p className="text-xs md:text-sm text-slate-200 italic font-medium leading-relaxed mt-2">
-              "{oracle}"
-            </p>
-          </div>
-        </div>
-      )}
-
       <div 
         className="absolute bottom-[-100px] left-1/2 -translate-x-1/2 w-[600px] h-[300px] rounded-[50%] blur-3xl transition-all duration-500 pointer-events-none"
         style={{
@@ -191,7 +171,7 @@ const Nebula: React.FC<NebulaProps> = ({ thoughts, onThoughtClick, onThoughtRele
                </svg>
             </div>
             <span className={`text-[9px] font-black uppercase tracking-[0.4em] transition-all ${voidIntensity > 0.3 ? 'text-rose-400 opacity-100' : 'text-slate-700 opacity-40'}`}>
-              {lang === 'zh' ? '拖入虚无释放' : 'Drag to Release'}
+              {lang === 'zh' ? '释放外部压力' : 'Release External Noise'}
             </span>
          </div>
       </div>

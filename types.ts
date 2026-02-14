@@ -6,16 +6,22 @@ export type CalendarProvider = 'GOOGLE' | 'APPLE' | null;
 
 export enum ThoughtStatus {
   UNSORTED = 'UNSORTED',
-  LET_THEM = 'LET_THEM', // Stillness/Acceptance
-  LET_ME = 'LET_ME',     // Actionable
+  LET_THEM = 'LET_THEM', // Stillness/Acceptance (Smoke)
+  LET_ME = 'LET_ME',     // Actionable (Solid)
   COMPLETED = 'COMPLETED',
-  RELEASED = 'RELEASED'  // New: Completely purged from mind
+  RELEASED = 'RELEASED'  
 }
 
 export enum Weight {
   URGENT = 'URGENT',     
   IMPORTANT = 'IMPORTANT', 
   CASUAL = 'CASUAL'      
+}
+
+export interface SubTask {
+  id: string;
+  text: string;
+  completed: boolean;
 }
 
 export interface Thought extends SimulationNodeDatum {
@@ -28,6 +34,10 @@ export interface Thought extends SimulationNodeDatum {
   weight?: Weight;
   aiReasoning?: string;
   reframedContent?: string; 
+  stoicQuote?: string;
+  visualState?: 'solid' | 'smoke';
+  subTasks?: SubTask[];
+  timeEstimate?: string;
   r?: number; 
   index?: number;
   x?: number;
@@ -43,4 +53,7 @@ export interface AnalysisResult {
   weight?: Weight;
   reasoning: string;
   reframing?: string; 
+  stoicQuote?: string;
+  subTasks?: string[];
+  timeEstimate?: string;
 }
