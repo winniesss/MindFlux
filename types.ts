@@ -38,6 +38,7 @@ export interface Thought extends SimulationNodeDatum {
   visualState?: 'solid' | 'smoke';
   subTasks?: SubTask[];
   timeEstimate?: string;
+  suggestedSlot?: string;
   r?: number; 
   index?: number;
   x?: number;
@@ -56,4 +57,6 @@ export interface AnalysisResult {
   stoicQuote?: string;
   subTasks?: string[];
   timeEstimate?: string;
+  suggestedSlot?: string;
+  calendarConflict?: string;
 }

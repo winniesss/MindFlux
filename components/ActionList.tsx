@@ -45,8 +45,8 @@ const ActionList: React.FC<ActionListProps> = ({ thoughts, onComplete, onUpdateS
     <div className="w-full h-full overflow-y-auto pt-24 md:pt-32 pb-44 px-4 md:px-12">
       <div className="max-w-3xl mx-auto space-y-6">
         <div className="mb-10 text-center sm:text-left px-2">
-           <h2 className="text-amber-500 text-[10px] md:text-xs font-black tracking-[0.4em] uppercase mb-1">Commitments</h2>
-           <p className="text-slate-500 text-xs md:text-base">Focus your energy on what you control.</p>
+           <h2 className="text-amber-500 text-[10px] md:text-xs font-black tracking-[0.4em] uppercase mb-1">{t('letMe', lang)}</h2>
+           <p className="text-slate-500 text-xs md:text-base">{lang === 'zh' ? '专注于你能控制的事情。' : 'Focus your energy on what you control.'}</p>
         </div>
         {sortedThoughts.map((thought) => (
           <ActionCard 
@@ -79,6 +79,13 @@ const ActionCard: React.FC<{ thought: Thought; onComplete: (t: Thought) => void;
   const toggleSubtask = (subTaskId: string) => {
     const updated = (thought.subTasks || []).map(st => 
       st.id === subTaskId ? { ...st, completed: !st.completed } : st
+    );
+    onUpdateSubtasks(thought.id, updated);
+  };
+
+  const editSubtask = (subTaskId: string, text: string) => {
+    const updated = (thought.subTasks || []).map(st => 
+      st.id === subTaskId ? { ...st, text } : st
     );
     onUpdateSubtasks(thought.id, updated);
   };
@@ -116,9 +123,15 @@ const ActionCard: React.FC<{ thought: Thought; onComplete: (t: Thought) => void;
          <div className="flex-1 min-w-0">
             <div className="flex items-center gap-3 mb-2">
               <span className={`text-[8px] md:text-xs font-black uppercase tracking-[0.2em] ${isCompleted ? 'text-slate-600' : isOverdue ? 'text-rose-400' : 'text-slate-500'}`}>
-                {isCompleted ? 'Done' : (thought.dueDate ? new Date(thought.dueDate).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }) : 'Unscheduled')}
+                {isCompleted ? (lang === 'zh' ? '已完成' : 'Done') : (thought.dueDate ? new Date(thought.dueDate).toLocaleDateString(lang === 'zh' ? 'zh-CN' : 'en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : (lang === 'zh' ? '未排程' : 'Unscheduled'))}
               </span>
               {isOverdue && !isCompleted && <span className="animate-pulse w-1.5 h-1.5 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,1)]"></span>}
+              {thought.timeEstimate && !isCompleted && (
+                <span className="flex items-center gap-1 text-[8px] md:text-[10px] font-bold text-slate-500 bg-white/5 px-2 py-0.5 rounded border border-white/5">
+                  <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  {thought.timeEstimate}
+                </span>
+              )}
             </div>
             
             <p className={`font-bold text-base md:text-2xl leading-tight break-words mb-4 transition-all ${isCompleted ? 'text-slate-700 line-through' : isOverdue ? 'text-rose-50' : 'text-slate-100'}`}>
@@ -129,25 +142,32 @@ const ActionCard: React.FC<{ thought: Thought; onComplete: (t: Thought) => void;
             {!isCompleted && thought.subTasks && thought.subTasks.length > 0 && (
               <div className="space-y-2 mb-4 animate-in slide-in-from-left-2 duration-500">
                 {thought.subTasks.map(st => (
-                  <button 
+                  <div 
                     key={st.id}
-                    onClick={() => toggleSubtask(st.id)}
-                    className="w-full flex items-center gap-3 py-2 px-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all text-left group/st"
+                    className="w-full flex items-center gap-3 py-2 px-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all group/st"
                   >
-                    <div className={`w-4 h-4 rounded-md border flex items-center justify-center transition-all ${st.completed ? 'bg-amber-500 border-amber-500' : 'border-slate-700 group-hover/st:border-amber-500/50'}`}>
+                    <button 
+                       onClick={(e) => { e.stopPropagation(); toggleSubtask(st.id); }}
+                       className={`shrink-0 w-4 h-4 rounded-md border flex items-center justify-center transition-all ${st.completed ? 'bg-amber-500 border-amber-500' : 'border-slate-700 group-hover/st:border-amber-500/50'}`}
+                    >
                        {st.completed && <svg className="w-3 h-3 text-amber-950" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>}
-                    </div>
-                    <span className={`text-xs md:text-sm font-medium ${st.completed ? 'text-slate-600 line-through' : 'text-slate-300'}`}>{st.text}</span>
-                  </button>
+                    </button>
+                    <input 
+                       value={st.text}
+                       onChange={(e) => editSubtask(st.id, e.target.value)}
+                       className={`bg-transparent border-none focus:ring-0 p-0 text-xs md:text-sm font-medium w-full outline-none ${st.completed ? 'text-slate-600 line-through' : 'text-slate-300 placeholder-slate-700'}`}
+                       placeholder="..."
+                    />
+                  </div>
                 ))}
               </div>
             )}
             
-            {thought.aiReasoning && !isCompleted && (
-              <div className="flex items-start gap-2 max-w-lg">
+            {thought.reframedContent && !isCompleted && (
+              <div className="flex items-start gap-2 max-w-lg mb-2">
                 <span className="text-amber-500/50 text-[10px] md:text-sm mt-0.5">✦</span>
                 <p className="text-[9px] md:text-sm text-slate-500 italic leading-relaxed font-medium">
-                  {thought.aiReasoning}
+                  {thought.reframedContent}
                 </p>
               </div>
             )}
@@ -157,7 +177,7 @@ const ActionCard: React.FC<{ thought: Thought; onComplete: (t: Thought) => void;
            <button 
               onClick={handleCalendarClick}
               className="shrink-0 w-8 h-8 md:w-14 md:h-14 rounded-full bg-slate-800/40 border border-slate-700 hover:bg-indigo-600/20 hover:border-indigo-500/50 text-slate-600 hover:text-indigo-300 flex items-center justify-center transition-all shadow-xl mt-1 group/btn"
-              title="Schedule in Calendar"
+              title={lang === 'zh' ? '在日历中排程' : 'Schedule in Calendar'}
             >
               <svg className="w-4 h-4 md:w-7 md:h-7 group-hover/btn:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2-2v12a2 2 0 002 2z" />

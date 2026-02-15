@@ -46,7 +46,7 @@ const MenuDrawer: React.FC<MenuDrawerProps> = ({
         className={`fixed top-0 right-0 z-[80] h-full w-[75%] max-w-[280px] bg-slate-950/98 border-l border-white/5 backdrop-blur-3xl transition-transform duration-500 ease-out p-6 flex flex-col shadow-2xl ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
       >
         <div className="flex justify-between items-center mb-10">
-          <h2 className="text-[9px] font-black tracking-[0.4em] text-white/20 uppercase italic">Control</h2>
+          <h2 className="text-[9px] font-black tracking-[0.4em] text-white/20 uppercase italic">{lang === 'zh' ? '导航' : 'Control'}</h2>
           <button 
             onClick={onClose}
             className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:text-white transition-colors"
@@ -59,7 +59,7 @@ const MenuDrawer: React.FC<MenuDrawerProps> = ({
 
         {/* Navigation Section */}
         <div className="flex-1 space-y-2">
-          <p className="text-[8px] font-black uppercase tracking-[0.3em] text-slate-600 mb-4">Viewports</p>
+          <p className="text-[8px] font-black uppercase tracking-[0.3em] text-slate-600 mb-4">{lang === 'zh' ? '视图模式' : 'Viewports'}</p>
           
           {[
             { id: 'NEBULA', label: t('chaos', lang), count: counts.unsorted, activeClass: 'bg-white text-slate-950 border-white shadow-lg' },
@@ -91,7 +91,7 @@ const MenuDrawer: React.FC<MenuDrawerProps> = ({
           >
             <div className="flex items-center gap-3">
               <svg className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924-1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
               </svg>
               <span className="text-[10px] font-black uppercase tracking-widest">{t('settings', lang)}</span>
             </div>

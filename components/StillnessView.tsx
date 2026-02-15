@@ -40,8 +40,12 @@ const StillnessView: React.FC<StillnessViewProps> = ({ thoughts, lang, onClearSt
         <div className="w-20 h-20 md:w-32 md:h-32 rounded-full border border-slate-800/50 flex items-center justify-center mb-8 animate-[pulse_4s_infinite]">
           <span className="text-3xl md:text-5xl">🌙</span>
         </div>
-        <p className="text-sm md:text-xl tracking-[0.4em] font-black uppercase opacity-60">The mirror is clear</p>
-        <p className="text-xs md:text-base mt-3 opacity-30 font-light italic">No external worries have been accepted yet.</p>
+        <p className="text-sm md:text-xl tracking-[0.4em] font-black uppercase opacity-60">
+          {lang === 'zh' ? '镜面已明' : 'The mirror is clear'}
+        </p>
+        <p className="text-xs md:text-base mt-3 opacity-30 font-light italic">
+          {lang === 'zh' ? '目前还没有接受任何外部烦恼。' : 'No external worries have been accepted yet.'}
+        </p>
       </div>
     );
   }
@@ -50,9 +54,13 @@ const StillnessView: React.FC<StillnessViewProps> = ({ thoughts, lang, onClearSt
     <div className="w-full h-full overflow-y-auto pt-28 md:pt-40 pb-44 px-6 md:px-12">
       <div className="max-w-3xl mx-auto space-y-12">
         <div className="text-center mb-16 px-4">
-          <h2 className="text-indigo-400 text-[10px] md:text-xs font-black tracking-[0.5em] uppercase mb-4 opacity-80">{t('letThem', lang)} Gallery</h2>
+          <h2 className="text-indigo-400 text-[10px] md:text-xs font-black tracking-[0.5em] uppercase mb-4 opacity-80">
+            {t('letThem', lang)} {lang === 'zh' ? '画廊' : 'Gallery'}
+          </h2>
           <p className="text-slate-400 text-sm md:text-2xl leading-relaxed italic font-serif max-w-2xl mx-auto drop-shadow-sm mb-4">
-            "Everything we hear is an opinion, not a fact. Everything we see is a perspective, not the truth."
+            {lang === 'zh' 
+              ? '“我们听到的一切都是意见，而非事实。我们看到的一切都是视角，而非真相。”' 
+              : '"Everything we hear is an opinion, not a fact. Everything we see is a perspective, not the truth."'}
           </p>
           <div className="flex justify-center mt-8">
             <button 
@@ -75,7 +83,7 @@ const StillnessView: React.FC<StillnessViewProps> = ({ thoughts, lang, onClearSt
               className={`relative p-8 md:p-12 rounded-[2rem] bg-indigo-950/5 border border-white/5 backdrop-blur-xl group hover:bg-indigo-950/10 hover:border-indigo-500/20 transition-all duration-1000 cursor-pointer overflow-hidden ${vanishingId === t.id ? 'animate-[dissipate_1s_ease-out_forwards]' : ''}`}
             >
               <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                 <span className="text-[8px] font-black text-indigo-400/40 uppercase tracking-widest">Tap to Dissipate</span>
+                 <span className="text-[8px] font-black text-indigo-400/40 uppercase tracking-widest">{lang === 'zh' ? '点击消散' : 'Tap to Dissipate'}</span>
               </div>
 
               <p className="text-slate-500 text-sm md:text-xl mb-6 line-through decoration-slate-800/50 opacity-40 italic font-medium">
@@ -85,7 +93,7 @@ const StillnessView: React.FC<StillnessViewProps> = ({ thoughts, lang, onClearSt
               <div className="flex items-start gap-4 md:gap-6">
                 <span className="text-indigo-400 text-2xl md:text-4xl mt-1 animate-pulse">🌙</span>
                 <p className="text-indigo-100 text-base md:text-2xl font-semibold leading-snug tracking-tight">
-                  {t.stoicQuote || "Accept what you cannot change."}
+                  {t.stoicQuote || (lang === 'zh' ? "接纳你无法改变的事情。" : "Accept what you cannot change.")}
                 </p>
               </div>
             </div>

@@ -18,27 +18,31 @@ const getAnalysisSchema = (lang: Language) => ({
     },
     reasoning: {
       type: Type.STRING,
-      description: `Explain why this belongs to this category in ${lang === 'zh' ? 'Chinese' : 'English'}.`
+      description: `Explain why this belongs to this category strictly in ${lang === 'zh' ? 'Chinese' : 'English'}.`
     },
     reframing: {
       type: Type.STRING,
-      description: "For LET_THEM, a gentle reframing. For LET_ME, the core goal."
+      description: `Reframing or core goal in ${lang === 'zh' ? 'Chinese' : 'English'}.`
     },
     stoicQuote: {
       type: Type.STRING,
-      description: "A short profound Stoic-style insight (max 15 words)."
+      description: `Stoic insight in ${lang === 'zh' ? 'Chinese' : 'English'} (max 15 words).`
     },
     subTasks: {
       type: Type.ARRAY,
       items: { type: Type.STRING },
-      description: "For LET_ME, 1-3 micro-tasks (15 mins each). Empty for LET_THEM."
+      description: `1-3 steps in ${lang === 'zh' ? 'Chinese' : 'English'}.`
     },
     timeEstimate: {
       type: Type.STRING,
-      description: "Total time estimate for actionable items."
+      description: "Time estimate (e.g. '45m')."
+    },
+    suggestedSlot: {
+      type: Type.STRING,
+      description: `A recommended TIME of day (e.g. '10:30', '14:00', or '晚上'). Strictly in ${lang === 'zh' ? 'Chinese' : 'English'}. If Today is chosen, this MUST be in the future relative to the Current Time.`
     }
   },
-  required: ["category", "reasoning", "stoicQuote"]
+  required: ["category", "reasoning", "stoicQuote", "suggestedSlot"]
 });
 
 const splitChaosSchema = {
@@ -52,23 +56,16 @@ const splitChaosSchema = {
   }
 };
 
-/**
- * Semantic Explosion: Simplified for fragment confirmation only.
- */
 export const splitChaos = async (content: string, lang: Language): Promise<Partial<Thought>[]> => {
   try {
-    const prompt = `Deconstruct: "${content}". 
-    Split into distinct items. Keep it raw and atomic.
-    Language: ${lang === 'zh' ? 'Chinese' : 'English'}.`;
-
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: prompt,
+      contents: `Deconstruct: "${content}". Split into distinct items. Use language: ${lang === 'zh' ? 'Chinese' : 'English'}.`,
       config: {
         responseMimeType: "application/json",
         responseSchema: splitChaosSchema,
         thinkingConfig: { thinkingBudget: 0 },
-        systemInstruction: "You are a deconstruction expert. Explode messy human input into clean, distinct fragments of thought."
+        systemInstruction: `You are a deconstruction expert. Explode human input into clean fragments. Output in ${lang}.`
       }
     });
 
@@ -77,9 +74,10 @@ export const splitChaos = async (content: string, lang: Language): Promise<Parti
       content: r.text,
       status: ThoughtStatus.UNSORTED
     }));
-  } catch (error) {
-    console.error("Split Chaos Error:", error);
-    return [{ content, status: ThoughtStatus.UNSORTED }];
+  } catch (error: any) {
+    const parts = content.split(/[，。？！；,\.?!;]\s*/).filter(p => p.trim().length > 0);
+    if (parts.length <= 1) return [{ content: content.trim(), status: ThoughtStatus.UNSORTED }];
+    return parts.map(p => ({ content: p.trim(), status: ThoughtStatus.UNSORTED }));
   }
 };
 
@@ -88,49 +86,35 @@ export const analyzeThought = async (
   lang: Language, 
   calendarContext?: string
 ): Promise<AnalysisResult> => {
+  const now = new Date();
+  const currentTimeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+  
   try {
-    const prompt = `Quick analyze: "${content}".
-    ${calendarContext ? `Context: ${calendarContext}` : ""}
-    Language: ${lang === 'zh' ? 'Chinese' : 'English'}.`;
-
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: prompt,
+      contents: `Quick analyze: "${content}". Current Time: ${currentTimeStr}. ${calendarContext ? `Context: ${calendarContext}` : ""} Lang: ${lang}. THE SUGGESTED SLOT FOR TODAY MUST BE LATER THAN ${currentTimeStr}.`,
       config: {
         responseMimeType: "application/json",
         responseSchema: getAnalysisSchema(lang),
         thinkingConfig: { thinkingBudget: 0 },
-        systemInstruction: "You are a master of Stoicism. Provide concise reframing or micro-tasks instantly."
+        systemInstruction: `You are a master of Stoicism and productivity. USE ONLY ${lang === 'zh' ? 'Chinese' : 'English'}. NEVER suggest a time for today that has already passed.`
       }
     });
 
     return JSON.parse(response.text || "{}") as AnalysisResult;
-  } catch (error) {
-    console.error("Analysis Error:", error);
-    return {
-      category: 'LET_ME',
-      reasoning: "Action clarifies.",
-      stoicQuote: "The obstacle is the way.",
-      subTasks: ["First step"],
-      timeEstimate: "15m"
-    };
-  }
-};
+  } catch (error: any) {
+    const isQuestion = content.includes('?') || content.includes('？') || content.length > 60;
+    let futureHour = (now.getHours() + 1) % 24;
+    // Safety check for default fallback
+    if (futureHour < now.getHours()) futureHour = now.getHours() + 2; 
 
-export const analyzeChaos = async (thoughts: Thought[], lang: Language): Promise<string> => {
-  if (thoughts.length === 0) return "";
-  const contents = thoughts.map(t => t.content).join(" | ");
-  const prompt = `Summarize mental chaos in <15 words: "${contents}". Language: ${lang === 'zh' ? 'Chinese' : 'English'}.`;
-  try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: prompt,
-      config: {
-        thinkingConfig: { thinkingBudget: 0 }
-      }
-    });
-    return response.text || "";
-  } catch (e) {
-    return "Focus on what you control.";
+    return {
+      category: isQuestion ? 'LET_THEM' : 'LET_ME',
+      reasoning: lang === 'zh' ? "行动是治疗焦虑的良药。" : "Action is the antidote to anxiety.",
+      stoicQuote: lang === 'zh' ? "我们遭受的想象之苦多于现实之苦。" : "We suffer more in imagination than in reality.",
+      subTasks: isQuestion ? [] : [lang === 'zh' ? "迈出第一步" : "Take the first step"],
+      timeEstimate: "15m",
+      suggestedSlot: `${futureHour}:00`
+    };
   }
 };

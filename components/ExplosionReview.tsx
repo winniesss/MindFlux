@@ -34,10 +34,10 @@ const ExplosionReview: React.FC<ExplosionReviewProps> = ({ pendingThoughts, onCo
         <div className="p-8 md:p-10 border-b border-white/5">
            <div className="flex items-center gap-3 mb-2">
               <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
-              <h2 className="text-[10px] md:text-xs font-black uppercase tracking-[0.4em] text-indigo-400">Deconstruction</h2>
+              <h2 className="text-[10px] md:text-xs font-black uppercase tracking-[0.4em] text-indigo-400">{t('deconstruction', lang)}</h2>
            </div>
-           <p className="text-white text-xl md:text-2xl font-bold tracking-tight">I heard these fragments...</p>
-           <p className="text-slate-500 text-sm md:text-base mt-1">Select the ones that represent your actual thoughts.</p>
+           <p className="text-white text-xl md:text-2xl font-bold tracking-tight">{t('heardFragments', lang)}</p>
+           <p className="text-slate-500 text-sm md:text-base mt-1">{t('selectActualThoughts', lang)}</p>
         </div>
 
         <div className="flex-1 overflow-y-auto p-6 md:p-10 space-y-3">
@@ -70,14 +70,14 @@ const ExplosionReview: React.FC<ExplosionReviewProps> = ({ pendingThoughts, onCo
              onClick={onCancel}
              className="flex-1 py-4 rounded-2xl border border-white/10 text-slate-500 font-black uppercase tracking-widest text-[10px] hover:text-white transition-all"
            >
-             Discard
+             {t('discard', lang)}
            </button>
            <button
              onClick={() => onConfirm(selectedIds)}
              disabled={selectedIds.length === 0}
              className="flex-[2] py-4 rounded-2xl bg-indigo-600 text-white font-black uppercase tracking-[0.3em] text-[10px] md:text-sm hover:bg-indigo-500 hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-indigo-600/20 disabled:opacity-30"
            >
-             Integrate {selectedIds.length} Items
+             {t('integrateItems', lang, { n: selectedIds.length })}
            </button>
         </div>
       </div>
