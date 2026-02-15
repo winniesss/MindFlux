@@ -1,8 +1,7 @@
 
 /**
- * In a production environment, this would use the Google Calendar API (GAPI).
- * For Project Flux Demo, we simulate the 'Schedule Summary' to show how 
- * AI reasoning integrates with your daily context.
+ * Real Google Calendar Integration
+ * Uses GAPI to fetch actual user events.
  */
 
 export interface CalendarSummary {
@@ -11,31 +10,63 @@ export interface CalendarSummary {
   summary: string;
 }
 
-export const fetchCalendarContext = async (lang: 'zh' | 'en' = 'en'): Promise<CalendarSummary> => {
-  // Simulating an API call delay
-  await new Promise(resolve => setTimeout(resolve, 1500));
+// Internal state for the token
+let accessToken: string | null = null;
 
-  if (lang === 'zh') {
-    return {
-      events: [
-        "下午 2:00 与设计团队开会",
-        "下午 4:30 牙医预约",
-        "今日截止：Project Flux PRD 交付",
-        "晚上 7:00 家庭晚餐"
-      ],
-      busyLevel: 'high',
-      summary: "（演示数据）你今天下午非常繁忙，特别是 2 点到 5 点之间有背靠背的安排。建议将重要任务安排在晚上或明天上午。"
-    };
+export const setGoogleAccessToken = (token: string | null) => {
+  accessToken = token;
+};
+
+export const fetchCalendarContext = async (lang: 'zh' | 'en' = 'en'): Promise<CalendarSummary | null> => {
+  if (!accessToken) return null;
+
+  try {
+    // Initialize GAPI client if not already
+    await new Promise((resolve) => {
+      (window as any).gapi.load('client', resolve);
+    });
+
+    await (window as any).gapi.client.init({
+      // The discovery document for the Calendar API
+      discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest'],
+    });
+
+    // Set the token for GAPI
+    (window as any).gapi.client.setToken({ access_token: accessToken });
+
+    // Fetch events from now until the end of the day
+    const now = new Date();
+    const endOfDay = new Date();
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const response = await (window as any).gapi.client.calendar.events.list({
+      calendarId: 'primary',
+      timeMin: now.toISOString(),
+      timeMax: endOfDay.toISOString(),
+      showDeleted: false,
+      singleEvents: true,
+      orderBy: 'startTime',
+    });
+
+    const items = response.result.items || [];
+    const events = items.map((item: any) => {
+      const start = item.start.dateTime || item.start.date;
+      const startTime = new Date(start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      return `${startTime} - ${item.summary}`;
+    });
+
+    const busyLevel = events.length > 5 ? 'high' : events.length > 2 ? 'medium' : 'low';
+    
+    let summary = '';
+    if (lang === 'zh') {
+      summary = `你今天有 ${events.length} 个日程。忙碌程度：${busyLevel === 'high' ? '高' : busyLevel === 'medium' ? '中' : '低'}。`;
+    } else {
+      summary = `You have ${events.length} events today. Busy level: ${busyLevel}.`;
+    }
+
+    return { events, busyLevel, summary };
+  } catch (error) {
+    console.error('Error fetching calendar:', error);
+    return null;
   }
-
-  return {
-    events: [
-      "Meeting with Design Team @ 2:00 PM",
-      "Dentist Appointment @ 4:30 PM",
-      "Project Deadline: EOD Today",
-      "Dinner with family @ 7:00 PM"
-    ],
-    busyLevel: 'high',
-    summary: "(Demo Data) Your afternoon is packed with back-to-back commitments between 2 PM and 5 PM. Better schedule high-focus work for tonight or tomorrow morning."
-  };
 };

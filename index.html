@@ -6,18 +6,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>Flux - Flow</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google API Scripts -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="https://apis.google.com/js/api.js" async defer></script>
     <style>
       body, html {
         margin: 0;
         padding: 0;
         width: 100%;
         height: 100%;
-        background-color: #0f172a; /* Slate 900 fallback */
-        overflow: hidden; /* Prevent scrolling on body, handle in app */
+        background-color: #0f172a;
+        overflow: hidden;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         -webkit-tap-highlight-color: transparent;
       }
-      /* Custom Scrollbar for inner content */
       ::-webkit-scrollbar {
         width: 6px;
       }

@@ -38,7 +38,6 @@ function App() {
   useEffect(() => {
     const handleResize = () => setDimensions({ width: window.innerWidth, height: window.innerHeight });
     window.addEventListener('resize', handleResize);
-    // Fixed removeResizeListener to removeEventListener
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
@@ -50,6 +49,19 @@ function App() {
     const savedCal = localStorage.getItem('flux_calendar_provider') as CalendarProvider;
     if (savedCal) setCalendarProvider(savedCal);
   }, []);
+
+  // Update calendar context whenever provider changes or is connected
+  useEffect(() => {
+    if (calendarProvider === 'GOOGLE') {
+      setIsSyncing(true);
+      fetchCalendarContext(lang).then(summary => {
+        setCalendarContext(summary);
+        setIsSyncing(false);
+      });
+    } else {
+      setCalendarContext(null);
+    }
+  }, [calendarProvider, lang]);
 
   useEffect(() => {
     localStorage.setItem('flux_thoughts', JSON.stringify(thoughts));
@@ -115,7 +127,8 @@ function App() {
     <div className="fixed inset-0 w-full h-[100dvh] bg-slate-950 text-white overflow-hidden">
       <header className="absolute top-0 left-0 right-0 z-40 px-6 pt-[max(1rem,env(safe-area-inset-top))] h-24 flex justify-between items-center pointer-events-none">
         <h1 onClick={() => setView('NEBULA')} className="pointer-events-auto text-2xl md:text-5xl font-black tracking-tighter cursor-pointer active:scale-95 drop-shadow-2xl">FLUX</h1>
-        <button onClick={() => setIsMenuOpen(true)} className="pointer-events-auto w-10 h-10 md:w-16 md:h-16 rounded-full bg-white/5 border border-white/10 flex flex-col items-center justify-center gap-1 active:scale-90 shadow-lg">
+        <button onClick={() => setIsMenuOpen(true)} className="pointer-events-auto w-10 h-10 md:w-16 md:h-16 rounded-full bg-white/5 border border-white/10 flex flex-col items-center justify-center gap-1 active:scale-90 shadow-lg relative">
+           {isSyncing && <span className="absolute -top-1 -right-1 w-3 h-3 bg-indigo-500 rounded-full animate-ping"></span>}
            <div className="w-5 h-0.5 bg-white rounded-full"></div>
            <div className="w-5 h-0.5 bg-white rounded-full"></div>
            <div className="w-5 h-0.5 bg-white rounded-full"></div>
@@ -124,14 +137,22 @@ function App() {
 
       <main className="absolute inset-0">
         {view === 'NEBULA' && <Nebula thoughts={thoughts} onThoughtClick={setSelectedThought} onThoughtRelease={handleRelease} width={dimensions.width} height={dimensions.height} lang={lang} />}
-        {view === 'LIST' && <ActionList thoughts={thoughts} onComplete={(t) => setThoughts(prev => prev.map(p => p.id === t.id ? { ...p, status: ThoughtStatus.COMPLETED, completedAt: Date.now() } : p))} onUpdateSubtasks={(id, st) => setThoughts(prev => prev.map(p => p.id === id ? { ...p, subTasks: st } : p))} lang={lang} />}
+        {view === 'LIST' && <ActionList thoughts={thoughts} onComplete={(t) => setThoughts(prev => prev.map(p => p.id === t.id ? { ...p, status: ThoughtStatus.COMPLETED, completedAt: Date.now() } : p))} onUpdateSubtasks={(id, st) => setThoughts(prev => prev.map(p => p.id === id ? { ...p, subTasks: st } : p))} lang={lang} isCalendarConnected={!!calendarProvider} />}
         {view === 'STILLNESS' && <StillnessView thoughts={thoughts} lang={lang} onClearStillness={() => setThoughts(prev => prev.filter(t => t.status !== ThoughtStatus.LET_THEM))} onThoughtVanish={handleRelease} />}
       </main>
 
       {view === 'NEBULA' && <InputBar onSubmit={addThought} lang={lang} isProcessing={isExploding} />}
       
       <ExplosionReview pendingThoughts={pendingThoughts} onConfirm={confirmPendingThoughts} onCancel={() => setPendingThoughts([])} lang={lang} />
-      <SieveModal thought={selectedThought} onClose={() => setSelectedThought(null)} onSort={handleSort} lang={lang} calendarConnected={!!calendarProvider} onConnectCalendar={() => setIsSettingsOpen(true)} />
+      <SieveModal 
+        thought={selectedThought} 
+        onClose={() => setSelectedThought(null)} 
+        onSort={handleSort} 
+        lang={lang} 
+        calendarConnected={!!calendarProvider} 
+        calendarSummary={calendarContext?.summary}
+        onConnectCalendar={() => setIsSettingsOpen(true)} 
+      />
       <MenuDrawer isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} currentView={view} setView={setView} counts={{ unsorted: unsortedCount, action: actionCount, stillness: stillnessCount }} lang={lang} calendarProvider={calendarProvider} isSyncing={isSyncing} onOpenSettings={() => setIsSettingsOpen(true)} appVersion={APP_VERSION} />
       <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} lang={lang} onLanguageChange={(l) => { setLang(l); localStorage.setItem('flux_lang', l); }} currentVersion={APP_VERSION} calendarProvider={calendarProvider} onConnectCalendar={handleSetCalendar} />
       {undoAction && <Toast message={undoAction.message} onUndo={undoAction.restore} onClose={() => setUndoAction(null)} lang={lang} />}

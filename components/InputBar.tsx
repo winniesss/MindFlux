@@ -88,13 +88,13 @@ const InputBar: React.FC<InputBarProps> = ({ onSubmit, lang, isProcessing }) => 
     <div className={`fixed bottom-0 left-0 right-0 p-3 md:p-8 pb-[max(1.2rem,env(safe-area-inset-bottom)+0.2rem)] bg-gradient-to-t from-slate-950 via-slate-950/95 to-transparent z-50 flex justify-center pointer-events-none transition-all duration-300 ${isExpanded ? 'h-[70vh] items-start pt-20' : ''}`}>
       <form 
         onSubmit={handleSubmit} 
-        className={`w-full max-w-3xl flex items-end gap-2 md:gap-4 pointer-events-auto transition-all duration-500 ${isProcessing ? 'opacity-50' : 'opacity-100'}`}
+        className={`w-full max-w-3xl flex items-center gap-2 md:gap-4 pointer-events-auto transition-all duration-500 ${isProcessing ? 'opacity-50' : 'opacity-100'}`}
       >
         {/* Left Side: Voice/Mic Button */}
         <button
           type="button"
           onClick={toggleListening}
-          className={`shrink-0 w-11 h-11 md:w-16 md:h-16 rounded-full flex items-center justify-center transition-all duration-500 shadow-xl relative overflow-hidden mb-1 ${
+          className={`shrink-0 w-11 h-11 md:w-16 md:h-16 rounded-full flex items-center justify-center transition-all duration-500 shadow-xl relative overflow-hidden ${
             isListening ? 'bg-rose-500 text-white scale-105' : 'bg-white/5 text-slate-400 border border-white/10'
           }`}
         >
@@ -131,7 +131,7 @@ const InputBar: React.FC<InputBarProps> = ({ onSubmit, lang, isProcessing }) => 
             onKeyDown={handleKeyDown}
             disabled={isProcessing}
             placeholder={isProcessing ? t('syncing', lang) : isListening ? t('listening', lang) : t('inputPlaceholder', lang)}
-            className={`w-full bg-transparent p-4 md:p-6 pr-10 text-base md:text-xl font-medium text-white placeholder-slate-600 focus:outline-none transition-all resize-none leading-relaxed min-h-[44px] md:min-h-[64px] max-h-[30vh] overflow-y-auto ${isExpanded ? 'max-h-full h-full' : ''}`}
+            className={`w-full bg-transparent p-3 md:p-5 pr-10 text-base md:text-xl font-medium text-white placeholder-slate-600 focus:outline-none transition-all resize-none leading-relaxed min-h-[44px] md:min-h-[64px] max-h-[30vh] overflow-y-auto ${isExpanded ? 'max-h-full h-full' : ''}`}
             style={{ 
               scrollbarWidth: 'none',
               msOverflowStyle: 'none'
@@ -143,7 +143,7 @@ const InputBar: React.FC<InputBarProps> = ({ onSubmit, lang, isProcessing }) => 
         <button 
           type="submit"
           disabled={!text.trim() || isProcessing}
-          className={`shrink-0 w-11 h-11 md:w-16 md:h-16 rounded-full flex items-center justify-center transition-all duration-300 mb-1 ${
+          className={`shrink-0 w-11 h-11 md:w-16 md:h-16 rounded-full flex items-center justify-center transition-all duration-300 ${
             text.trim() && !isProcessing 
               ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30' 
               : 'bg-white/5 text-slate-600'

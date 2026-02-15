@@ -40,9 +40,9 @@ export const translations = {
     updateAvailable: "有新版本可用",
     updateNow: "立即更新",
     settings: "系统设置",
-    connectGoogle: "连接 Google 日历",
+    connectGoogle: "一键连接 Google",
     connectApple: "连接 Apple 日历",
-    connected: "已连接",
+    connected: "已同步",
     disconnect: "断开连接",
     syncing: "同步中...",
     cleanseStillness: "清空画廊",
@@ -66,7 +66,12 @@ export const translations = {
     released: "已释放",
     planValidated: "计划已验证",
     commitmentLevel: "承诺等级：绝对",
-    tapToDissipate: "点击使其消散"
+    tapToDissipate: "点击使其消散",
+    setupGuide: "设置指南",
+    copyOrigin: "复制授权域名",
+    originCopied: "已复制到剪贴板",
+    enterClientId: "请输入 Client ID",
+    saveConfig: "保存配置"
   },
   en: {
     appTitle: "FLUX",
@@ -105,10 +110,10 @@ export const translations = {
     upToDate: "App is up to date",
     updateAvailable: "New update available",
     updateNow: "Update Now",
-    settings: "System Settings",
-    connectGoogle: "Connect Google Calendar",
+    settings: "Settings",
+    connectGoogle: "One-Click Google",
     connectApple: "Connect Apple Calendar",
-    connected: "Connected",
+    connected: "Synced",
     disconnect: "Disconnect",
     syncing: "Syncing...",
     cleanseStillness: "Cleanse Gallery",
@@ -132,9 +137,13 @@ export const translations = {
     released: "Released",
     planValidated: "Plan Validated",
     commitmentLevel: "Commitment level: Absolute",
-    tapToDissipate: "Tap to Dissipate"
-  },
-  // Add other languages as needed with same keys
+    tapToDissipate: "Tap to Dissipate",
+    setupGuide: "Setup Guide",
+    copyOrigin: "Copy Origin URL",
+    originCopied: "Origin Copied",
+    enterClientId: "Enter Client ID",
+    saveConfig: "Save Config"
+  }
 };
 
 export const t = (key: keyof typeof translations['en'], lang: Language, params?: Record<string, any>) => {

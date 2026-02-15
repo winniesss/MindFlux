@@ -25,9 +25,9 @@ const Nebula: React.FC<NebulaProps> = ({ thoughts, onThoughtClick, onThoughtRele
     const activeThoughts = thoughts.filter(t => t.status === ThoughtStatus.UNSORTED);
     
     const simulation = d3.forceSimulation<Thought>(activeThoughts)
-      .force("charge", d3.forceManyBody().strength((d) => d.visualState === 'smoke' ? -60 : -100))
+      .force("charge", d3.forceManyBody().strength((d) => d.visualState === 'smoke' ? -100 : -150))
       .force("center", d3.forceCenter(width / 2, height / 2 - 60))
-      .force("collision", d3.forceCollide().radius((d) => (d.r || 40) + 12).iterations(1))
+      .force("collision", d3.forceCollide().radius((d) => (d.r || 45) + 15).iterations(1))
       .force("x", d3.forceX(width / 2).strength(0.08))
       .force("y", d3.forceY(height / 2 - 60).strength(0.08));
 
@@ -66,18 +66,17 @@ const Nebula: React.FC<NebulaProps> = ({ thoughts, onThoughtClick, onThoughtRele
       );
 
     node.append("circle")
-      .attr("r", (d) => d.r || 40)
-      .attr("fill", (d) => d.visualState === 'smoke' ? "rgba(99, 102, 241, 0.2)" : "rgba(255, 255, 255, 0.12)")
-      .attr("stroke", (d) => d.visualState === 'smoke' ? "rgba(99, 102, 241, 0.5)" : "rgba(255, 255, 255, 0.35)")
-      .attr("stroke-width", 1.5)
-      .style("backdrop-filter", "blur(12px)");
+      .attr("r", (d) => d.r || 45)
+      .attr("fill", (d) => d.visualState === 'smoke' ? "rgba(99, 102, 241, 0.25)" : "rgba(255, 255, 255, 0.15)")
+      .attr("stroke", (d) => d.visualState === 'smoke' ? "rgba(99, 102, 241, 0.6)" : "rgba(255, 255, 255, 0.45)")
+      .attr("stroke-width", 2)
+      .style("backdrop-filter", "blur(16px)");
 
-    // Fix: Explicitly ensuring XHTML container is visible and text is styled for mobile Safari
     node.append("foreignObject")
-      .attr("width", (d) => (d.r || 40) * 2)
-      .attr("height", (d) => (d.r || 40) * 2)
-      .attr("x", (d) => -(d.r || 40))
-      .attr("y", (d) => -(d.r || 40))
+      .attr("width", (d) => (d.r || 45) * 2)
+      .attr("height", (d) => (d.r || 45) * 2)
+      .attr("x", (d) => -(d.r || 45))
+      .attr("y", (d) => -(d.r || 45))
       .style("pointer-events", "none")
       .html((d) => `
         <div xmlns="http://www.w3.org/1999/xhtml" style="
@@ -90,18 +89,19 @@ const Nebula: React.FC<NebulaProps> = ({ thoughts, onThoughtClick, onThoughtRele
             display: table-cell;
             vertical-align: middle;
             text-align: center;
-            padding: 10px;
+            padding: 12px;
             box-sizing: border-box;
           ">
             <span style="
               color: white !important;
-              font-size: 11px;
+              font-size: 14px;
               font-weight: 800;
-              line-height: 1.2;
+              line-height: 1.35;
+              letter-spacing: -0.01em;
               word-break: break-word;
-              text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+              text-shadow: 0 2px 10px rgba(0,0,0,0.9);
               display: -webkit-box;
-              -webkit-line-clamp: 3;
+              -webkit-line-clamp: 4;
               -webkit-box-orient: vertical;
               overflow: hidden;
               font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -127,16 +127,14 @@ const Nebula: React.FC<NebulaProps> = ({ thoughts, onThoughtClick, onThoughtRele
       
       {showEmptyHint && (
         <div className="absolute inset-0 flex flex-col items-center justify-center p-12 text-center animate-in fade-in duration-1000">
-           <div className="w-24 h-24 rounded-full border border-white/5 flex items-center justify-center mb-8 opacity-25">
-              <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+           <div className="w-24 h-24 rounded-full border border-white/5 flex items-center justify-center mb-10 opacity-30">
+              <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
            </div>
-           <p className="text-slate-400 text-sm font-black uppercase tracking-[0.5em] opacity-40 leading-loose">
+           <p className="text-slate-400 text-sm md:text-lg font-black uppercase tracking-[0.5em] opacity-50 leading-loose">
             {lang === 'zh' ? '在此处注入你的思绪' : 'INFUSE YOUR THOUGHTS'}
            </p>
         </div>
       )}
-
-      {/* Note: Visual Release Target Icon removed as requested. Dragging to the bottom still releases thoughts. */}
 
       <svg ref={svgRef} width={width} height={height} className="w-full h-full relative z-10" />
     </div>
