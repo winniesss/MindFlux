@@ -12,8 +12,10 @@ interface InputBarProps {
 const InputBar: React.FC<InputBarProps> = ({ onSubmit, lang, isProcessing }) => {
   const [text, setText] = useState('');
   const [isListening, setIsListening] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [lineCount, setLineCount] = useState(1);
   const recognitionRef = useRef<any>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -30,6 +32,20 @@ const InputBar: React.FC<InputBarProps> = ({ onSubmit, lang, isProcessing }) => 
       recognitionRef.current = recognition;
     }
   }, [lang]);
+
+  // Handle auto-resize and line count detection
+  useEffect(() => {
+    if (textareaRef.current) {
+      const el = textareaRef.current;
+      el.style.height = 'auto';
+      const newHeight = el.scrollHeight;
+      el.style.height = `${newHeight}px`;
+
+      // Estimate line count (roughly based on 24px line height)
+      const estimatedLines = Math.floor(newHeight / 24);
+      setLineCount(estimatedLines);
+    }
+  }, [text]);
 
   const toggleListening = () => {
     if (!recognitionRef.current) return alert(t('browserNoSpeech', lang));
@@ -50,67 +66,91 @@ const InputBar: React.FC<InputBarProps> = ({ onSubmit, lang, isProcessing }) => 
     const trimmed = text.trim();
     if (!trimmed || isProcessing) return;
 
-    // 1. Force state reset immediately
     setText('');
-    
-    // 2. Force stop recognition 
     if (isListening) {
       recognitionRef.current?.stop();
       setIsListening(false);
     }
-
-    // 3. UI Blur
-    if (inputRef.current) {
-      inputRef.current.blur();
+    if (textareaRef.current) {
+      textareaRef.current.blur();
     }
-
-    // 4. Trigger logic
     onSubmit(trimmed);
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit();
+    }
+  };
+
   return (
-    <div className="fixed bottom-0 left-0 right-0 p-4 pb-[max(1.5rem,env(safe-area-inset-bottom)+0.5rem)] md:p-12 md:pb-16 bg-gradient-to-t from-slate-950 via-slate-950/90 to-transparent z-50 flex justify-center pointer-events-none">
+    <div className={`fixed bottom-0 left-0 right-0 p-3 md:p-8 pb-[max(1.2rem,env(safe-area-inset-bottom)+0.2rem)] bg-gradient-to-t from-slate-950 via-slate-950/95 to-transparent z-50 flex justify-center pointer-events-none transition-all duration-300 ${isExpanded ? 'h-[70vh] items-start pt-20' : ''}`}>
       <form 
         onSubmit={handleSubmit} 
-        className={`w-full max-w-2xl flex items-center gap-3 md:gap-6 pointer-events-auto transition-all duration-500 ${isProcessing ? 'opacity-50 scale-[0.98]' : 'opacity-100'}`}
+        className={`w-full max-w-3xl flex items-end gap-2 md:gap-4 pointer-events-auto transition-all duration-500 ${isProcessing ? 'opacity-50' : 'opacity-100'}`}
       >
+        {/* Left Side: Voice/Mic Button */}
         <button
           type="button"
           onClick={toggleListening}
-          className={`shrink-0 w-12 h-12 md:w-20 md:h-20 rounded-full flex items-center justify-center transition-all duration-500 shadow-2xl relative overflow-hidden ${
-            isListening ? 'bg-rose-500 text-white scale-110 shadow-rose-500/20' : 'bg-white/5 text-slate-400 border border-white/10 hover:border-white/20'
+          className={`shrink-0 w-11 h-11 md:w-16 md:h-16 rounded-full flex items-center justify-center transition-all duration-500 shadow-xl relative overflow-hidden mb-1 ${
+            isListening ? 'bg-rose-500 text-white scale-105' : 'bg-white/5 text-slate-400 border border-white/10'
           }`}
         >
           {isListening ? (
-            <>
-              <span className="absolute inset-0 bg-rose-400 animate-ping opacity-25"></span>
-              <div className="w-4 h-4 bg-white rounded-sm relative z-10 animate-pulse"></div>
-            </>
+            <span className="absolute inset-0 bg-rose-400 animate-pulse opacity-25"></span>
           ) : (
-            <svg className="w-5 h-5 md:w-9 md:h-9" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
+            <svg className="w-5 h-5 md:w-8 md:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
           )}
         </button>
 
-        <div className="relative flex-1">
-          <input
-            ref={inputRef}
-            type="text"
+        {/* Center: Expandable Input Area */}
+        <div className={`relative flex-1 bg-slate-900/60 backdrop-blur-3xl border border-white/10 rounded-[1.5rem] overflow-hidden transition-all duration-300 ${isExpanded ? 'flex-1 h-full' : ''}`}>
+          
+          {/* Top-right: Expand/Collapse toggle */}
+          {lineCount >= 3 && (
+            <button 
+              type="button"
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="absolute top-2 right-2 z-20 p-1.5 rounded-lg bg-white/5 text-slate-500 hover:text-white transition-colors"
+            >
+              {isExpanded ? (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+              ) : (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>
+              )}
+            </button>
+          )}
+
+          <textarea
+            ref={textareaRef}
+            rows={1}
             value={text}
             onChange={(e) => setText(e.target.value)}
+            onKeyDown={handleKeyDown}
             disabled={isProcessing}
             placeholder={isProcessing ? t('syncing', lang) : isListening ? t('listening', lang) : t('inputPlaceholder', lang)}
-            className="w-full bg-slate-900/60 backdrop-blur-3xl border border-white/10 rounded-[1.2rem] md:rounded-[2.5rem] py-3.5 pl-5 pr-12 md:py-6 md:pl-8 md:pr-24 text-sm md:text-2xl font-medium text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500/50 transition-all shadow-2xl appearance-none"
+            className={`w-full bg-transparent p-4 md:p-6 pr-10 text-base md:text-xl font-medium text-white placeholder-slate-600 focus:outline-none transition-all resize-none leading-relaxed min-h-[44px] md:min-h-[64px] max-h-[30vh] overflow-y-auto ${isExpanded ? 'max-h-full h-full' : ''}`}
+            style={{ 
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none'
+            }}
           />
-          <button 
-            type="submit"
-            disabled={!text.trim() || isProcessing}
-            className={`absolute right-1.5 top-1.5 bottom-1.5 aspect-square md:right-3 md:top-3 md:bottom-3 rounded-xl md:rounded-2xl flex items-center justify-center transition-all duration-300 ${
-              text.trim() && !isProcessing ? 'bg-indigo-600 text-white opacity-100 scale-100 shadow-lg shadow-indigo-600/20' : 'bg-slate-800 text-slate-600 opacity-0 scale-75'
-            }`}
-          >
-            <svg className="w-5 h-5 md:w-9 md:h-9" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 10l7-7m0 0l7 7m-7-7v18" /></svg>
-          </button>
         </div>
+
+        {/* Right Side: Send Button */}
+        <button 
+          type="submit"
+          disabled={!text.trim() || isProcessing}
+          className={`shrink-0 w-11 h-11 md:w-16 md:h-16 rounded-full flex items-center justify-center transition-all duration-300 mb-1 ${
+            text.trim() && !isProcessing 
+              ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30' 
+              : 'bg-white/5 text-slate-600'
+          }`}
+        >
+          <svg className="w-5 h-5 md:w-8 md:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 10l7-7m0 0l7 7m-7-7v18" /></svg>
+        </button>
       </form>
     </div>
   );
