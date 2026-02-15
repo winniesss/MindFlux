@@ -94,9 +94,9 @@ const Nebula: React.FC<NebulaProps> = ({ thoughts, onThoughtClick, onThoughtRele
           ">
             <span style="
               color: white !important;
-              font-size: 14px;
-              font-weight: 800;
-              line-height: 1.35;
+              font-size: 16px;
+              font-weight: 900;
+              line-height: 1.3;
               letter-spacing: -0.01em;
               word-break: break-word;
               text-shadow: 0 2px 10px rgba(0,0,0,0.9);
@@ -130,7 +130,7 @@ const Nebula: React.FC<NebulaProps> = ({ thoughts, onThoughtClick, onThoughtRele
            <div className="w-24 h-24 rounded-full border border-white/5 flex items-center justify-center mb-10 opacity-30">
               <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
            </div>
-           <p className="text-slate-400 text-sm md:text-lg font-black uppercase tracking-[0.5em] opacity-50 leading-loose">
+           <p className="text-slate-400 text-base md:text-2xl font-black uppercase tracking-[0.5em] opacity-50 leading-loose">
             {lang === 'zh' ? '在此处注入你的思绪' : 'INFUSE YOUR THOUGHTS'}
            </p>
         </div>
