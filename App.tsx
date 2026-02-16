@@ -14,7 +14,7 @@ import { t } from './locales';
 import { fetchCalendarContext, CalendarSummary } from './services/googleService';
 import { splitChaos } from './services/geminiService';
 
-const APP_VERSION = "2.1.0";
+const APP_VERSION = "1.5.1";
 
 function App() {
   const [thoughts, setThoughts] = useState<Thought[]>([]);
@@ -50,6 +50,7 @@ function App() {
     if (savedCal) setCalendarProvider(savedCal);
   }, []);
 
+  // Update calendar context whenever provider changes or is connected
   useEffect(() => {
     if (calendarProvider === 'GOOGLE') {
       setIsSyncing(true);
@@ -118,20 +119,19 @@ function App() {
     setUndoAction({ message: lang === 'zh' ? "思绪已消散" : "Thought dissipated", restore: () => setThoughts(prev => [...prev, thought]) });
   };
 
-  // Add missing count variables for MenuDrawer
   const unsortedCount = thoughts.filter(t => t.status === ThoughtStatus.UNSORTED).length;
   const actionCount = thoughts.filter(t => t.status === ThoughtStatus.LET_ME).length;
   const stillnessCount = thoughts.filter(t => t.status === ThoughtStatus.LET_THEM).length;
 
   return (
-    <div className="fixed inset-0 w-full h-[100dvh] bg-slate-950 text-white overflow-hidden font-sans">
+    <div className="fixed inset-0 w-full h-[100dvh] bg-slate-950 text-white overflow-hidden">
       <header className="absolute top-0 left-0 right-0 z-40 px-6 pt-[max(1rem,env(safe-area-inset-top))] h-24 flex justify-between items-center pointer-events-none">
-        <h1 onClick={() => setView('NEBULA')} className="pointer-events-auto flux-h2 cursor-pointer active:scale-95 drop-shadow-2xl m-0">FLUX</h1>
-        <button onClick={() => setIsMenuOpen(true)} className="pointer-events-auto w-12 h-12 md:w-16 md:h-16 rounded-full bg-white/5 border border-white/10 flex flex-col items-center justify-center gap-1 active:scale-90 shadow-lg relative">
+        <h1 onClick={() => setView('NEBULA')} className="pointer-events-auto text-2xl md:text-5xl font-black tracking-tighter cursor-pointer active:scale-95 drop-shadow-2xl">FLUX</h1>
+        <button onClick={() => setIsMenuOpen(true)} className="pointer-events-auto w-10 h-10 md:w-16 md:h-16 rounded-full bg-white/5 border border-white/10 flex flex-col items-center justify-center gap-1 active:scale-90 shadow-lg relative">
            {isSyncing && <span className="absolute -top-1 -right-1 w-3 h-3 bg-indigo-500 rounded-full animate-ping"></span>}
-           <div className="w-6 h-0.5 bg-white rounded-full"></div>
-           <div className="w-6 h-0.5 bg-white rounded-full"></div>
-           <div className="w-6 h-0.5 bg-white rounded-full"></div>
+           <div className="w-5 h-0.5 bg-white rounded-full"></div>
+           <div className="w-5 h-0.5 bg-white rounded-full"></div>
+           <div className="w-5 h-0.5 bg-white rounded-full"></div>
         </button>
       </header>
 

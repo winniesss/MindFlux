@@ -21,26 +21,18 @@ const GravityWell: React.FC<GravityWellProps> = ({ thoughts, onComplete, width, 
 
     const activeTasks = thoughts.filter(t => t.status === ThoughtStatus.LET_ME);
     
-    // Configure visual properties based on weight
     activeTasks.forEach(t => {
-      // Size
-      if (t.weight === Weight.URGENT) t.r = 30; // Small, dense
-      else if (t.weight === Weight.IMPORTANT) t.r = 45; // Large, important
-      else t.r = 35; // Casual
+      if (t.weight === Weight.URGENT) t.r = 30;
+      else if (t.weight === Weight.IMPORTANT) t.r = 45;
+      else t.r = 35;
 
-      // Initial random position if not set
       if (!t.x) t.x = Math.random() * width;
-      if (!t.y) t.y = 0; // Start from top
+      if (!t.y) t.y = 0;
     });
-
-    // Gravity Logic: Heavier items fall deeper and stronger
-    // URGENT: Target Y = height (bottom), Strength high
-    // IMPORTANT: Target Y = height * 0.8, Strength medium
-    // CASUAL: Target Y = height * 0.5, Strength low (will float on top of others)
 
     const simulation = d3.forceSimulation<Thought>(activeTasks)
       .force("collide", d3.forceCollide().radius((d) => (d.r || 30) + 5).iterations(3))
-      .force("x", d3.forceX(width / 2).strength(0.08)) // Keep centered horizontally
+      .force("x", d3.forceX(width / 2).strength(0.08))
       .force("y", d3.forceY((d) => {
           if (d.weight === Weight.URGENT) return height;
           if (d.weight === Weight.IMPORTANT) return height - 100;
@@ -51,12 +43,11 @@ const GravityWell: React.FC<GravityWellProps> = ({ thoughts, onComplete, width, 
           return 0.05;
       }))
       .force("box", () => {
-        // Custom force to keep inside canvas boundaries
         for (const node of activeTasks) {
           if (!node.r) continue;
           if ((node.y || 0) > height - node.r) {
               node.y = height - node.r;
-              if(node.vy && node.vy > 0) node.vy *= -0.5; // Dampen
+              if(node.vy && node.vy > 0) node.vy *= -0.5;
           }
         }
       });
@@ -70,26 +61,21 @@ const GravityWell: React.FC<GravityWellProps> = ({ thoughts, onComplete, width, 
         context.beginPath();
         context.arc(node.x, node.y, node.r, 0, 2 * Math.PI);
         
-        // Styling based on weight
         if (node.weight === Weight.URGENT) {
-          // Dense Iron/Amber
-          context.fillStyle = '#b45309'; // Amber 700
-          context.strokeStyle = '#f59e0b'; // Amber 500
+          context.fillStyle = '#b45309';
+          context.strokeStyle = '#f59e0b';
         } else if (node.weight === Weight.IMPORTANT) {
-           // Crystalline Blue
-           context.fillStyle = '#1e40af'; // Blue 800
-           context.strokeStyle = '#60a5fa'; // Blue 400
+           context.fillStyle = '#1e40af';
+           context.strokeStyle = '#60a5fa';
         } else {
-           // Light Wood/Grey
-           context.fillStyle = '#475569'; // Slate 600
-           context.strokeStyle = '#94a3b8'; // Slate 400
+           context.fillStyle = '#475569';
+           context.strokeStyle = '#94a3b8';
         }
         
         context.lineWidth = 3;
         context.fill();
         context.stroke();
 
-        // Label
         context.fillStyle = 'white';
         context.font = '10px sans-serif';
         context.textAlign = 'center';
@@ -101,7 +87,6 @@ const GravityWell: React.FC<GravityWellProps> = ({ thoughts, onComplete, width, 
 
     simulation.on('tick', draw);
 
-    // Interaction to break (complete) tasks
     const handleClick = (event: MouseEvent) => {
        const rect = canvas.getBoundingClientRect();
        const x = event.clientX - rect.left;
@@ -136,8 +121,8 @@ const GravityWell: React.FC<GravityWellProps> = ({ thoughts, onComplete, width, 
         className="block"
       />
       <div className="absolute bottom-4 left-0 right-0 text-center pointer-events-none">
-        <p className="text-xs text-slate-400 uppercase tracking-widest">Gravity Field Active</p>
-        <p className="text-[10px] text-slate-600">Tap to crush tasks</p>
+        <p className="text-xs text-slate-400 uppercase tracking-widest opacity-60">Inner Momentum</p>
+        <p className="text-[10px] text-slate-600">Tap to achieve clarity</p>
       </div>
     </div>
   );

@@ -32,32 +32,39 @@ const ActionList: React.FC<ActionListProps> = ({ thoughts, onComplete, onUpdateS
   if (sortedThoughts.length === 0) {
     return (
        <div className="flex flex-col items-center justify-center h-full text-slate-500 px-8 text-center animate-in fade-in duration-1000">
-         <div className="w-16 h-16 rounded-full border border-slate-800 flex items-center justify-center mb-6 opacity-30">
-           <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 13l4 4L19 7" /></svg>
+         <div className="w-24 h-24 md:w-32 lg:w-40 md:h-32 lg:h-40 rounded-full border border-slate-800/50 flex items-center justify-center mb-12 opacity-30">
+           <svg className="w-12 h-12 md:w-16 lg:w-20 md:h-16 lg:h-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M5 13l4 4L19 7" /></svg>
          </div>
-         <p className="flux-h2 text-slate-600 tracking-[0.4em] uppercase opacity-60">{t('emptyActions', lang)}</p>
-         <p className="flux-body mt-2 opacity-40 font-light italic">{t('emptyActionsSub', lang)}</p>
+         <p className="text-xl md:text-2xl lg:text-3xl tracking-[0.4em] font-black uppercase opacity-60">{t('emptyActions', lang)}</p>
+         <p className="text-sm md:text-base lg:text-lg mt-6 opacity-30 font-light italic">{t('emptyActionsSub', lang)}</p>
        </div>
     );
   }
 
   return (
-    <div className="w-full h-full overflow-y-auto pt-[max(6rem,env(safe-area-inset-top)+2rem)] pb-32 sm:pb-40 px-4 sm:px-10 md:px-20">
-      <div className="max-w-3xl mx-auto space-y-8">
-        <div className="mb-10 text-center sm:text-left px-2">
-           <h2 className="text-amber-500 flux-caption !tracking-[0.5em] mb-2">{t('letMe', lang)}</h2>
-           <p className="text-slate-500 flux-body italic">{lang === 'zh' ? '专注于你能控制的事情。' : 'Focus your energy on what you control.'}</p>
+    <div className="w-full h-full overflow-y-auto pt-24 lg:pt-16 pb-32 px-6 lg:px-16">
+      <div className="max-w-[1600px] mx-auto">
+        <div className="mb-12 lg:mb-16 text-left">
+           <div className="flex items-center gap-3 mb-4">
+             <div className="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_10px_#f59e0b]"></div>
+             <h2 className="text-amber-500 text-xs md:text-sm lg:text-sm font-black tracking-[0.5em] uppercase">{t('letMe', lang)}</h2>
+           </div>
+           <p className="text-slate-400 text-lg md:text-xl lg:text-2xl font-black tracking-tight max-w-2xl">{lang === 'zh' ? '专注于你能控制的事情。' : 'Focus energy on what you control.'}</p>
         </div>
-        {sortedThoughts.map((thought) => (
-          <ActionCard 
-            key={thought.id} 
-            thought={thought} 
-            onComplete={onComplete} 
-            onUpdateSubtasks={onUpdateSubtasks}
-            showCalendar={isCalendarConnected}
-            lang={lang}
-          />
-        ))}
+        
+        {/* Adaptive Grid for Desktop */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-6 lg:gap-8">
+          {sortedThoughts.map((thought) => (
+            <ActionCard 
+              key={thought.id} 
+              thought={thought} 
+              onComplete={onComplete} 
+              onUpdateSubtasks={onUpdateSubtasks}
+              showCalendar={isCalendarConnected}
+              lang={lang}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -99,68 +106,86 @@ const ActionCard: React.FC<{ thought: Thought; onComplete: (t: Thought) => void;
 
   return (
     <div 
-      className={`group relative p-6 sm:p-8 rounded-[1.5rem] border backdrop-blur-md transition-all duration-700 transform overflow-hidden ${
+      className={`group relative p-8 lg:p-8 rounded-[2rem] border backdrop-blur-3xl transition-all duration-700 transform flex flex-col h-full ${
         isCompleted 
-          ? 'bg-slate-900/10 border-slate-800/20 opacity-30 grayscale pointer-events-none' 
+          ? 'bg-slate-900/10 border-slate-800/20 opacity-30 grayscale' 
           : isOverdue 
-            ? 'bg-rose-950/10 border-rose-500/30 shadow-[0_0_50px_rgba(244,63,94,0.05)]' 
-            : 'bg-slate-900/40 border-slate-800 hover:border-slate-700'
+            ? 'bg-rose-950/10 border-rose-500/20 shadow-[0_0_40px_rgba(244,63,94,0.05)]' 
+            : 'bg-white/[0.03] border-white/5 hover:bg-white/[0.06] hover:border-white/20'
       } ${isImploding ? 'animate-[implosion_0.6s_ease-in_forwards]' : ''}`}
     >
-       <div className="flex flex-col sm:flex-row items-start gap-6">
+       <div className="flex items-start gap-6 mb-8">
          <button 
            onClick={() => !isCompleted && handleComplete()}
-           className={`shrink-0 w-10 h-10 md:w-14 md:h-14 rounded-full border-2 transition-all flex items-center justify-center ${
+           className={`shrink-0 w-12 h-12 lg:w-12 lg:h-12 rounded-xl border-2 transition-all flex items-center justify-center ${
              isCompleted ? 'bg-amber-500 border-amber-500' : 
-             isOverdue ? 'border-rose-500/60' : 'border-slate-700 group-hover:border-amber-500'
-           } hover:scale-105 active:scale-90`}
+             isOverdue ? 'border-rose-500/60' : 'border-slate-800 group-hover:border-amber-500'
+           } hover:scale-105 active:scale-95`}
          >
-           <svg className={`w-6 h-6 md:w-8 md:h-8 text-amber-950 transition-opacity ${isCompleted ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+           <svg className={`w-6 h-6 lg:w-6 lg:h-6 text-amber-950 transition-opacity ${isCompleted ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" />
            </svg>
          </button>
          
-         <div className="flex-1 min-w-0 w-full">
-            <div className="flex flex-wrap items-center gap-3 mb-4">
-              <span className={`flux-caption !text-[9px] sm:!text-[10px] ${isCompleted ? 'text-slate-600' : isOverdue ? 'text-rose-400' : 'text-slate-500'}`}>
-                {isCompleted ? (lang === 'zh' ? '已完成' : 'Done') : (thought.dueDate ? new Date(thought.dueDate).toLocaleDateString(lang === 'zh' ? 'zh-CN' : 'en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : (lang === 'zh' ? '未排程' : 'Unscheduled'))}
+         <div className="flex-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-3 mb-2">
+              <span className={`text-[10px] lg:text-[10px] font-black uppercase tracking-[0.25em] ${isCompleted ? 'text-slate-600' : isOverdue ? 'text-rose-400' : 'text-slate-500'}`}>
+                {isCompleted ? (lang === 'zh' ? '已完成' : 'Achieved') : (thought.dueDate ? new Date(thought.dueDate).toLocaleDateString(lang === 'zh' ? 'zh-CN' : 'en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : (lang === 'zh' ? '自由排程' : 'Open Schedule'))}
               </span>
-              {isOverdue && !isCompleted && <span className="animate-pulse w-1.5 h-1.5 rounded-full bg-rose-500"></span>}
+              {thought.timeEstimate && !isCompleted && (
+                <span className="text-[9px] font-bold text-slate-400 bg-white/5 px-2 py-0.5 rounded-full border border-white/5">
+                  {thought.timeEstimate}
+                </span>
+              )}
             </div>
-            
-            <p className={`flux-h2 mb-6 transition-all ${isCompleted ? 'text-slate-700 line-through' : isOverdue ? 'text-rose-50' : 'text-slate-100'}`}>
+            <p className={`font-black text-xl lg:text-xl leading-tight tracking-tight break-words transition-all ${isCompleted ? 'text-slate-700 line-through' : isOverdue ? 'text-rose-50' : 'text-slate-100'}`}>
                {thought.content}
             </p>
-
-            {!isCompleted && thought.subTasks && thought.subTasks.length > 0 && (
-              <div className="space-y-2 mb-6">
-                {thought.subTasks.map(st => (
-                  <div key={st.id} className="w-full flex items-center gap-3 py-2.5 px-4 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all group/st">
-                    <button onClick={(e) => { e.stopPropagation(); toggleSubtask(st.id); }} className={`shrink-0 w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all ${st.completed ? 'bg-amber-500 border-amber-500' : 'border-slate-700 group-hover/st:border-amber-500/50'}`}>
-                       {st.completed && <svg className="w-3 h-3 text-amber-950" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>}
-                    </button>
-                    <input 
-                       value={st.text}
-                       onChange={(e) => editSubtask(st.id, e.target.value)}
-                       className={`bg-transparent border-none focus:ring-0 p-0 text-sm md:text-base font-bold w-full outline-none ${st.completed ? 'text-slate-700 line-through' : 'text-slate-200 placeholder-slate-800'}`}
-                       placeholder="..."
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-            
-            {thought.reframedContent && !isCompleted && (
-              <div className="flex items-start gap-3">
-                <span className="text-amber-500/50 text-xl">✦</span>
-                <p className="text-sm md:text-base text-slate-500 italic leading-relaxed font-semibold">{thought.reframedContent}</p>
-              </div>
-            )}
          </div>
+       </div>
 
+       {/* Sub-tasks Section */}
+       {!isCompleted && thought.subTasks && thought.subTasks.length > 0 && (
+         <div className="space-y-2 mb-8 flex-1">
+           {thought.subTasks.map(st => (
+             <div 
+               key={st.id}
+               className="w-full flex items-center gap-4 py-2.5 px-4 rounded-xl bg-white/[0.02] border border-white/[0.03] hover:border-white/10 transition-all group/st"
+             >
+               <button 
+                  onClick={(e) => { e.stopPropagation(); toggleSubtask(st.id); }}
+                  className={`shrink-0 w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all ${st.completed ? 'bg-amber-500 border-amber-500' : 'border-slate-800 group-hover/st:border-amber-500/50'}`}
+               >
+                  {st.completed && <svg className="w-3.5 h-3.5 text-amber-950" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>}
+               </button>
+               <input 
+                  value={st.text}
+                  onChange={(e) => editSubtask(st.id, e.target.value)}
+                  className={`bg-transparent border-none focus:ring-0 p-0 text-xs lg:text-xs font-bold w-full outline-none ${st.completed ? 'text-slate-700 line-through' : 'text-slate-300'}`}
+               />
+             </div>
+           ))}
+         </div>
+       )}
+
+       <div className="mt-auto flex items-center justify-between pt-5 border-t border-white/5">
+         <div className="flex-1 mr-4">
+           {thought.reframedContent && !isCompleted && (
+             <p className="text-[10px] lg:text-[10px] text-slate-500 italic font-bold leading-relaxed line-clamp-2">
+               "{thought.reframedContent}"
+             </p>
+           )}
+         </div>
+         
          {!isCompleted && (
-           <button onClick={handleCalendarClick} className="hidden sm:flex shrink-0 w-10 h-10 md:w-14 md:h-14 rounded-full bg-slate-800/40 border border-slate-700 hover:bg-indigo-600/20 hover:border-indigo-500/50 text-slate-500 hover:text-indigo-300 items-center justify-center transition-all group/btn">
-              <svg className="w-5 h-5 md:w-6 group-hover/btn:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2-2v12a2 2 0 002 2z" /></svg>
+           <button 
+              onClick={handleCalendarClick}
+              className="w-10 h-10 lg:w-10 lg:h-10 rounded-full bg-white/5 border border-white/10 hover:bg-indigo-600/20 hover:border-indigo-500/50 text-slate-500 hover:text-indigo-400 flex items-center justify-center transition-all"
+              title={t('scheduleNow', lang)}
+            >
+              <svg className="w-5 h-5 lg:w-5 lg:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2-2v12a2 2 0 002 2z" />
+              </svg>
            </button>
          )}
        </div>

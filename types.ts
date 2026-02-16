@@ -1,7 +1,7 @@
 
 import { SimulationNodeDatum } from 'd3-force';
 
-export type Language = 'zh' | 'en';
+export type Language = 'zh' | 'en' | 'es' | 'ja' | 'fr';
 export type CalendarProvider = 'GOOGLE' | 'APPLE' | null;
 
 export enum ThoughtStatus {
