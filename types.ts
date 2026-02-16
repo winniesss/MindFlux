@@ -1,13 +1,12 @@
 
 import { SimulationNodeDatum } from 'd3-force';
 
-export type Language = 'zh' | 'en' | 'es' | 'ja' | 'fr';
-export type CalendarProvider = 'GOOGLE' | 'APPLE' | null;
+export type Language = 'zh' | 'en';
 
 export enum ThoughtStatus {
   UNSORTED = 'UNSORTED',
-  LET_THEM = 'LET_THEM', // Stillness/Acceptance (Smoke)
-  LET_ME = 'LET_ME',     // Actionable (Solid)
+  LET_THEM = 'LET_THEM', // Finding Peace (Smoke)
+  LET_ME = 'LET_ME',     // I've Got This (Solid)
   COMPLETED = 'COMPLETED',
   RELEASED = 'RELEASED'  
 }
@@ -58,5 +57,4 @@ export interface AnalysisResult {
   subTasks?: string[];
   timeEstimate?: string;
   suggestedSlot?: string;
-  calendarConflict?: string;
 }

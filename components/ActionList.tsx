@@ -1,18 +1,17 @@
 
 import React, { useState } from 'react';
 import { Thought, Weight, ThoughtStatus, Language, SubTask } from '../types';
-import { generateGoogleCalendarUrl } from '../services/calendarService';
+// Removed deprecated import: generateGoogleCalendarUrl
 import { t } from '../locales';
 
 interface ActionListProps {
   thoughts: Thought[];
   onComplete: (thought: Thought) => void;
   onUpdateSubtasks: (thoughtId: string, subTasks: SubTask[]) => void;
-  isCalendarConnected?: boolean;
   lang: Language;
 }
 
-const ActionList: React.FC<ActionListProps> = ({ thoughts, onComplete, onUpdateSubtasks, isCalendarConnected, lang }) => {
+const ActionList: React.FC<ActionListProps> = ({ thoughts, onComplete, onUpdateSubtasks, lang }) => {
   const oneDayInMs = 24 * 60 * 60 * 1000;
   
   const displayThoughts = thoughts.filter(t => 
@@ -60,7 +59,6 @@ const ActionList: React.FC<ActionListProps> = ({ thoughts, onComplete, onUpdateS
               thought={thought} 
               onComplete={onComplete} 
               onUpdateSubtasks={onUpdateSubtasks}
-              showCalendar={isCalendarConnected}
               lang={lang}
             />
           ))}
@@ -70,7 +68,7 @@ const ActionList: React.FC<ActionListProps> = ({ thoughts, onComplete, onUpdateS
   );
 };
 
-const ActionCard: React.FC<{ thought: Thought; onComplete: (t: Thought) => void; onUpdateSubtasks: (id: string, st: SubTask[]) => void; showCalendar?: boolean; lang: Language }> = ({ thought, onComplete, onUpdateSubtasks, showCalendar, lang }) => {
+const ActionCard: React.FC<{ thought: Thought; onComplete: (t: Thought) => void; onUpdateSubtasks: (id: string, st: SubTask[]) => void; lang: Language }> = ({ thought, onComplete, onUpdateSubtasks, lang }) => {
   const [isImploding, setIsImploding] = useState(false);
   const isCompleted = thought.status === ThoughtStatus.COMPLETED;
   const isOverdue = !isCompleted && thought.dueDate && thought.dueDate < Date.now();
@@ -97,12 +95,7 @@ const ActionCard: React.FC<{ thought: Thought; onComplete: (t: Thought) => void;
     onUpdateSubtasks(thought.id, updated);
   };
 
-  const handleCalendarClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (isCompleted) return;
-    const url = generateGoogleCalendarUrl(thought);
-    window.open(url, '_blank');
-  };
+  // Removed handleCalendarClick as it's no longer supported
 
   return (
     <div 
@@ -177,17 +170,7 @@ const ActionCard: React.FC<{ thought: Thought; onComplete: (t: Thought) => void;
            )}
          </div>
          
-         {!isCompleted && (
-           <button 
-              onClick={handleCalendarClick}
-              className="w-10 h-10 lg:w-10 lg:h-10 rounded-full bg-white/5 border border-white/10 hover:bg-indigo-600/20 hover:border-indigo-500/50 text-slate-500 hover:text-indigo-400 flex items-center justify-center transition-all"
-              title={t('scheduleNow', lang)}
-            >
-              <svg className="w-5 h-5 lg:w-5 lg:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2-2v12a2 2 0 002 2z" />
-              </svg>
-           </button>
-         )}
+         {/* Removed deprecated calendar button UI */}
        </div>
     </div>
   );
