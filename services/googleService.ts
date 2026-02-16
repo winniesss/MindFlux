@@ -3,6 +3,7 @@
  * Real Google Calendar Integration
  * Uses GAPI to fetch actual user events.
  */
+import { Language } from '../types';
 
 export interface CalendarSummary {
   events: string[];
@@ -17,7 +18,8 @@ export const setGoogleAccessToken = (token: string | null) => {
   accessToken = token;
 };
 
-export const fetchCalendarContext = async (lang: 'zh' | 'en' = 'en'): Promise<CalendarSummary | null> => {
+// Fix: Accept the full Language type to match the application's supported locales.
+export const fetchCalendarContext = async (lang: Language = 'en'): Promise<CalendarSummary | null> => {
   if (!accessToken) return null;
 
   try {

@@ -6,44 +6,101 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>Flux - Flow</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google API Scripts -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="https://apis.google.com/js/api.js" async defer></script>
     <style>
+      :root {
+        /* 
+           Fluid Typography System - v2.1.3 UI Scale Down
+           大幅收紧桌面端的上限，防止视觉膨胀
+        */
+        
+        /* H1: 28px -> 36px */
+        --flux-h1: clamp(1.75rem, 1.6rem + 0.6vw, 2.25rem);
+        
+        /* H2: 20px -> 24px */
+        --flux-h2: clamp(1.25rem, 1.2rem + 0.3vw, 1.5rem);
+        
+        /* Body: 15px -> 16px */
+        --flux-body: clamp(0.9375rem, 0.9rem + 0.15vw, 1rem);
+        
+        /* Caption: 11px -> 12px */
+        --flux-caption: clamp(0.6875rem, 0.65rem + 0.1vw, 0.75rem);
+        
+        /* Leading & Tracking */
+        --flux-leading-tight: 1.2;
+        --flux-leading-base: 1.5;
+        --flux-tracking-h1: -0.03em;
+        --flux-tracking-h2: -0.01em;
+        --flux-tracking-base: 0.01em;
+      }
+
       body, html {
         margin: 0;
         padding: 0;
         width: 100%;
         height: 100%;
-        background-color: #0f172a;
+        background-color: #020617; /* Slate 950 */
         overflow: hidden;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         -webkit-tap-highlight-color: transparent;
+        color: #f8fafc;
+        line-height: var(--flux-leading-base);
+        letter-spacing: var(--flux-tracking-base);
       }
-      ::-webkit-scrollbar {
-        width: 6px;
+
+      /* Global Responsive Classes */
+      .flux-h1 {
+        font-size: var(--flux-h1);
+        line-height: var(--flux-leading-tight);
+        letter-spacing: var(--flux-tracking-h1);
+        font-weight: 800;
       }
-      ::-webkit-scrollbar-track {
-        background: transparent;
+
+      .flux-h2 {
+        font-size: var(--flux-h2);
+        line-height: var(--flux-leading-tight);
+        letter-spacing: var(--flux-tracking-h2);
+        font-weight: 700;
       }
-      ::-webkit-scrollbar-thumb {
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: 3px;
+
+      .flux-body {
+        font-size: var(--flux-body);
+        line-height: var(--flux-leading-base);
       }
+
+      .flux-caption {
+        font-size: var(--flux-caption);
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: #64748b; /* Slate 500 */
+      }
+
+      ::-webkit-scrollbar { width: 3px; }
+      ::-webkit-scrollbar-track { background: transparent; }
+      ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.05); border-radius: 10px; }
+
+      @keyframes smokeDissolve {
+        0% { transform: scale(1) translateY(0); opacity: 1; filter: blur(0px); }
+        40% { transform: scale(1.05) translateY(-20px); opacity: 0.6; filter: blur(8px); }
+        100% { transform: scale(1.3) translateY(-100px); opacity: 0; filter: blur(30px); }
+      }
+      .animate-smoke { animation: smokeDissolve 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
     </style>
-  <script type="importmap">
-{
-  "imports": {
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "react": "https://aistudiocdn.com/react@^19.2.0",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
-    "d3": "https://aistudiocdn.com/d3@^7.9.0",
-    "d3-force": "https://aistudiocdn.com/d3-force@^3.0.0"
-  }
-}
-</script>
-</head>
+    <script type="importmap">
+    {
+      "imports": {
+        "react/": "https://aistudiocdn.com/react@^19.2.0/",
+        "react": "https://aistudiocdn.com/react@^19.2.0",
+        "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+        "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
+        "d3": "https://aistudiocdn.com/d3@^7.9.0",
+        "d3-force": "https://aistudiocdn.com/d3-force@^3.0.0"
+      }
+    }
+    </script>
+  </head>
   <body>
     <div id="root"></div>
   </body>

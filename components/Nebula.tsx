@@ -24,12 +24,16 @@ const Nebula: React.FC<NebulaProps> = ({ thoughts, onThoughtClick, onThoughtRele
 
     const activeThoughts = thoughts.filter(t => t.status === ThoughtStatus.UNSORTED);
     
+    // Calculate adaptive radius based on screen width
+    const baseRadius = Math.min(width / 8, 60);
+    const responsiveRadius = (d: Thought) => (d.r ? (d.r / 45) * baseRadius : baseRadius);
+
     const simulation = d3.forceSimulation<Thought>(activeThoughts)
       .force("charge", d3.forceManyBody().strength((d) => d.visualState === 'smoke' ? -100 : -150))
-      .force("center", d3.forceCenter(width / 2, height / 2 - 60))
-      .force("collision", d3.forceCollide().radius((d) => (d.r || 45) + 15).iterations(1))
-      .force("x", d3.forceX(width / 2).strength(0.08))
-      .force("y", d3.forceY(height / 2 - 60).strength(0.08));
+      .force("center", d3.forceCenter(width / 2, height / 2 - 40))
+      .force("collision", d3.forceCollide().radius((d) => responsiveRadius(d) + 10).iterations(2))
+      .force("x", d3.forceX(width / 2).strength(0.1))
+      .force("y", d3.forceY(height / 2 - 40).strength(0.1));
 
     const node = svg.append("g")
       .selectAll("g")
@@ -54,7 +58,8 @@ const Nebula: React.FC<NebulaProps> = ({ thoughts, onThoughtClick, onThoughtRele
         })
         .on("end", (event, d) => {
           if (!event.active) simulation.alphaTarget(0);
-          const voidYThreshold = height - 260; 
+          // Responsive release threshold: bottom 15% of screen
+          const voidYThreshold = height * 0.85; 
           if (event.y > voidYThreshold) {
             onThoughtRelease(d);
           } else {
@@ -66,17 +71,17 @@ const Nebula: React.FC<NebulaProps> = ({ thoughts, onThoughtClick, onThoughtRele
       );
 
     node.append("circle")
-      .attr("r", (d) => d.r || 45)
+      .attr("r", responsiveRadius)
       .attr("fill", (d) => d.visualState === 'smoke' ? "rgba(99, 102, 241, 0.25)" : "rgba(255, 255, 255, 0.15)")
       .attr("stroke", (d) => d.visualState === 'smoke' ? "rgba(99, 102, 241, 0.6)" : "rgba(255, 255, 255, 0.45)")
       .attr("stroke-width", 2)
       .style("backdrop-filter", "blur(16px)");
 
     node.append("foreignObject")
-      .attr("width", (d) => (d.r || 45) * 2)
-      .attr("height", (d) => (d.r || 45) * 2)
-      .attr("x", (d) => -(d.r || 45))
-      .attr("y", (d) => -(d.r || 45))
+      .attr("width", (d) => responsiveRadius(d) * 2)
+      .attr("height", (d) => responsiveRadius(d) * 2)
+      .attr("x", (d) => -responsiveRadius(d))
+      .attr("y", (d) => -responsiveRadius(d))
       .style("pointer-events", "none")
       .html((d) => `
         <div xmlns="http://www.w3.org/1999/xhtml" style="
@@ -89,22 +94,23 @@ const Nebula: React.FC<NebulaProps> = ({ thoughts, onThoughtClick, onThoughtRele
             display: table-cell;
             vertical-align: middle;
             text-align: center;
-            padding: 12px;
+            padding: ${width < 640 ? '10px' : '14px'};
             box-sizing: border-box;
           ">
             <span style="
               color: white !important;
-              font-size: 16px;
-              font-weight: 900;
-              line-height: 1.3;
-              letter-spacing: -0.01em;
+              font-size: ${width < 640 ? '10px' : '13px'};
+              font-weight: 800;
+              line-height: 1.1;
+              letter-spacing: -0.025em;
               word-break: break-word;
-              text-shadow: 0 2px 10px rgba(0,0,0,0.9);
+              text-shadow: 0 4px 12px rgba(0,0,0,0.4);
               display: -webkit-box;
               -webkit-line-clamp: 4;
               -webkit-box-orient: vertical;
               overflow: hidden;
-              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+              font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+              opacity: 0.95;
             ">
               ${d.content}
             </span>
@@ -126,17 +132,27 @@ const Nebula: React.FC<NebulaProps> = ({ thoughts, onThoughtClick, onThoughtRele
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(30,41,59,1)_0%,rgba(15,23,42,1)_100%)] opacity-80" />
       
       {showEmptyHint && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center p-12 text-center animate-in fade-in duration-1000">
-           <div className="w-24 h-24 rounded-full border border-white/5 flex items-center justify-center mb-10 opacity-30">
-              <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-1000">
+           <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-full border border-white/5 flex items-center justify-center mb-8 sm:mb-10 opacity-30 relative overflow-hidden">
+              <div className="absolute inset-0 bg-white/5 animate-ping rounded-full"></div>
            </div>
-           <p className="text-slate-400 text-base md:text-2xl font-black uppercase tracking-[0.5em] opacity-50 leading-loose">
-            {lang === 'zh' ? '在此处注入你的思绪' : 'INFUSE YOUR THOUGHTS'}
+           <p className="text-slate-400 text-base sm:text-lg md:text-xl font-medium opacity-50 leading-relaxed max-w-sm px-4">
+            {t('emptyChaosInvite', lang)}
            </p>
         </div>
       )}
 
       <svg ref={svgRef} width={width} height={height} className="w-full h-full relative z-10" />
+      
+      {/* Visual Indicator for Release Zone */}
+      {dragY !== null && (
+        <div 
+          className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-rose-500/10 to-transparent pointer-events-none transition-opacity duration-300 flex items-center justify-center"
+          style={{ opacity: dragY > height * 0.7 ? 1 : 0 }}
+        >
+          <p className="text-rose-400 text-[10px] font-black uppercase tracking-[0.4em] animate-pulse">{t('released', lang)}</p>
+        </div>
+      )}
     </div>
   );
 };
